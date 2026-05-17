@@ -1,4 +1,8 @@
 # TODO
 
-- Make it PWA installable on phones to make usage easier
+- phone design work
+- check permitions
+- make a readme
+- clean normal UI
+
 
