@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'dark');})()</script>
   <title>Password Manager</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PassMgr">
+  <link rel="apple-touch-icon" href="/icons/icon.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -192,12 +199,54 @@
     .audit-action-create { color: var(--success); }
     .audit-action-edit   { color: var(--warn); }
     .audit-action-delete { color: var(--danger); }
+
+    /* MOBILE / PWA */
+    .menu-btn { display: none; }
+    .tree-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 49; }
+    .tree-overlay.visible { display: block; }
+
+    @media (max-width: 680px) {
+      .menu-btn { display: inline-flex; }
+      .tree-panel {
+        position: fixed;
+        top: 52px;
+        left: -270px;
+        height: calc(100dvh - 52px);
+        z-index: 50;
+        transition: left 0.22s ease;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.45);
+      }
+      .tree-panel.mobile-open { left: 0; }
+      .detail-panel { height: 190px; }
+      .detail-grid { grid-template-columns: 1fr; }
+      /* Larger touch targets */
+      .icon-btn { padding: 5px 7px; font-size: 0.85rem; }
+      td { padding: 0.65rem 0.5rem; }
+      th { padding: 0.5rem 0.5rem; }
+      /* Hide less-important columns on very small screens */
+      .col-access, .col-modified { display: none; }
+      /* Nav: hide text-heavy elements, keep essential ones */
+      .nav-user > span { display: none; }
+      .nav-brand { font-size: 0.9rem; }
+      /* Modal full-width */
+      .modal { max-width: 100% !important; border-radius: 12px 12px 0 0; }
+      .modal-backdrop { align-items: flex-end; padding: 0; }
+      /* Audit modal */
+      .modal[style*="860px"] { max-width: 100% !important; }
+    }
+
+    /* Safe area insets for notched phones */
+    nav { padding-left: calc(1.25rem + env(safe-area-inset-left)); padding-right: calc(1.25rem + env(safe-area-inset-right)); }
+    .content-header { padding-left: calc(1.25rem + env(safe-area-inset-left)); padding-right: calc(1.25rem + env(safe-area-inset-right)); }
+    .list-area { padding-left: calc(1rem + env(safe-area-inset-left)); padding-right: calc(1rem + env(safe-area-inset-right)); padding-bottom: calc(0.5rem + env(safe-area-inset-bottom)); }
+    .detail-panel { padding-bottom: env(safe-area-inset-bottom); }
   </style>
 </head>
 <body>
 
 <nav>
   <div class="nav-brand">
+    <button class="menu-btn btn-ghost" onclick="toggleMobileTree()" title="Toggle folders" style="padding:0.3rem 0.5rem;margin-right:0.25rem">☰</button>
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="4" y="10" width="16" height="11" rx="2" fill="#6366f1"/>
       <path d="M8 10V7a4 4 0 018 0v3" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" fill="none"/>
@@ -215,6 +264,7 @@
   </div>
 </nav>
 
+<div id="treeOverlay" class="tree-overlay" onclick="closeMobileTree()"></div>
 <div class="layout">
   <!-- TREE PANEL -->
   <div class="tree-panel">
@@ -607,6 +657,7 @@ function renderNode(node, depth) {
   row.onclick = () => {
     document.querySelectorAll('.tree-node-row.active').forEach(r => r.classList.remove('active'));
     row.classList.add('active');
+    closeMobileTree();
     loadFolder(node.id, node.name, node.userLevel, !node.parent_id);
   };
 
@@ -665,6 +716,7 @@ function navigateToFolder(id, name, level) {
     }
   }
   loadFolder(id, name, level, false);
+  closeMobileTree();
 }
 
 // ─── CONTENT RENDERING ───────────────────────────────────────────────────────
@@ -1700,6 +1752,27 @@ window.__debug = (() => {
     },
   };
 })();
+
+// ─── MOBILE TREE ─────────────────────────────────────────────────────────────
+
+function toggleMobileTree() {
+  const panel = document.querySelector('.tree-panel');
+  const overlay = document.getElementById('treeOverlay');
+  const open = panel.classList.contains('mobile-open');
+  panel.classList.toggle('mobile-open', !open);
+  overlay.classList.toggle('visible', !open);
+}
+
+function closeMobileTree() {
+  document.querySelector('.tree-panel').classList.remove('mobile-open');
+  document.getElementById('treeOverlay').classList.remove('visible');
+}
+
+// ─── SERVICE WORKER REGISTRATION ──────────────────────────────────────────────
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 updateThemeIcon();

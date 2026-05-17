@@ -46,6 +46,9 @@ app.get('/favicon.ico', (req, res) => {
   res.send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#6366f1"/><rect x="9" y="14" width="14" height="11" rx="2" fill="#fff"/><path d="M12 14v-3a4 4 0 018 0v3" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="16" cy="19" r="1.5" fill="#6366f1"/><line x1="16" y1="20.5" x2="16" y2="22.5" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/></svg>');
 });
 
+// Static files (manifest, service worker, icons)
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
