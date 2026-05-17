@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'dark');})()</script>
+  <title>Password Manager</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2d3148;
+      --accent: #6366f1;
+      --accent-hover: #5558e3;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warn: #f59e0b;
+    }
+
+    [data-theme="light"] {
+      --bg: #f5f6f8;
+      --surface: #ffffff;
+      --surface2: #f0f1f5;
+      --border: #e2e5ec;
+      --text: #1a1e2b;
+      --muted: #6b7280;
+      color-scheme: light;
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: background .2s, color .2s; }
+
+    /* NAV */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 1.25rem; height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .nav-brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; font-size: 1rem; color: var(--text); }
+    .nav-brand svg { width: 22px; height: 22px; }
+    .nav-user { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; color: var(--muted); }
+    .nav-user span { color: var(--text); }
+    .btn-ghost { background: none; border: 1px solid var(--border); color: var(--muted); padding: 0.3rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: all 0.15s; }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+
+    /* LAYOUT */
+    .layout { display: flex; flex: 1; overflow: hidden; }
+
+    /* TREE PANEL */
+    .tree-panel { width: 260px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+    .tree-header { padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+    .tree-header span { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .tree-scroll { flex: 1; overflow-y: auto; padding: 0.5rem 0; }
+    .tree-empty { padding: 1rem; color: var(--muted); font-size: 0.8rem; text-align: center; }
+
+    /* TREE NODES */
+    .tree-node { }
+    .tree-node-row { display: flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.5rem 0.3rem 0; cursor: pointer; border-radius: 6px; position: relative; user-select: none; }
+    .tree-node-row:hover { background: var(--surface2); }
+    .tree-node-row.active { background: var(--surface2); }
+    .tree-node-row.active .node-name { color: var(--accent); }
+    .tree-indent { flex-shrink: 0; }
+    .toggle-btn { width: 18px; height: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 0.6rem; transition: transform 0.15s; }
+    .toggle-btn.open { transform: rotate(90deg); }
+    .toggle-btn.leaf { opacity: 0; pointer-events: none; }
+    .folder-icon { font-size: 0.85rem; flex-shrink: 0; }
+    .node-name { font-size: 0.85rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .node-actions { display: none; gap: 0.2rem; margin-left: auto; padding-right: 0.5rem; }
+    .tree-node-row:hover .node-actions { display: flex; }
+    .icon-btn { background: none; border: none; cursor: pointer; color: var(--muted); padding: 2px 4px; border-radius: 4px; font-size: 0.75rem; line-height: 1; }
+    .icon-btn:hover { background: var(--border); color: var(--text); }
+    .icon-btn.danger:hover { color: var(--danger); }
+    .tree-children { }
+
+    /* CONTENT PANEL */
+    .content-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .content-header { padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: var(--surface); }
+    .breadcrumb { font-size: 0.85rem; color: var(--muted); }
+    .breadcrumb strong { color: var(--text); }
+    .content-actions { display: flex; gap: 0.5rem; }
+    .btn { padding: 0.4rem 0.85rem; border-radius: 7px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); }
+
+    .content-scroll { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; }
+    .placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--muted); gap: 0.75rem; }
+    .placeholder svg { width: 48px; height: 48px; opacity: 0.3; }
+    .placeholder p { font-size: 0.9rem; }
+
+    /* ITEMS TABLE */
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: var(--surface2); }
+    .item-name { font-weight: 500; }
+    .item-username { color: var(--muted); font-family: monospace; font-size: 0.8rem; }
+    .item-actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
+    .badge { font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 4px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .badge.read { color: #60a5fa; border-color: #1e3a5f; }
+    .badge.write { color: #34d399; border-color: #064e3b; }
+    .badge.admin { color: #f472b6; border-color: #500724; }
+
+    /* MODAL */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+    .modal-backdrop.hidden { display: none; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 480px; box-shadow: 0 16px 48px rgba(0,0,0,0.6); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .modal-header h2 { font-size: 1rem; font-weight: 600; }
+    .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0.2rem; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 1.25rem; }
+    .modal-footer { padding: 1rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.4rem; font-weight: 500; }
+    input[type=text], input[type=password], textarea, select {
+      width: 100%; padding: 0.55rem 0.8rem; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg); color: var(--text); font-size: 0.88rem; outline: none; font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 2.5rem; }
+    .pw-toggle { position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.85rem; }
+    .reveal-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; font-family: monospace; font-size: 0.9rem; word-break: break-all; position: relative; margin-bottom: 0.75rem; }
+    .copy-btn { position: absolute; top: 0.4rem; right: 0.4rem; }
+    .countdown { font-size: 0.75rem; color: var(--muted); text-align: center; }
+    .perm-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; max-height: 200px; overflow-y: auto; }
+    .perm-row { display: flex; align-items: center; gap: 0.5rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 0.5rem 0.75rem; font-size: 0.8rem; }
+    .perm-row .perm-subject { flex: 1; font-family: monospace; font-size: 0.75rem; word-break: break-all; }
+    .perm-empty { color: var(--muted); font-size: 0.8rem; font-style: italic; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+    .flash { padding: 0.5rem 0.75rem; border-radius: 7px; font-size: 0.8rem; margin-bottom: 0.75rem; display: none; }
+    .flash.error { background: #3b1515; border: 1px solid #7f1d1d; color: #fca5a5; display: block; }
+    .flash.success { background: #052e16; border: 1px solid #14532d; color: #86efac; display: block; }
+    select option { background: var(--surface); }
+    .sug-box { position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; max-height: 220px; overflow-y: auto; z-index: 400; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    .sug-box.hidden { display: none; }
+    .sug-item { padding: 0.55rem 0.75rem; cursor: pointer; border-bottom: 1px solid var(--border); }
+    .sug-item:last-child { border-bottom: none; }
+    .sug-item:hover { background: var(--surface2); }
+    .sug-name { font-size: 0.84rem; font-weight: 500; }
+    .sug-sub { font-size: 0.72rem; color: var(--muted); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sug-searching { padding: 0.6rem 0.75rem; color: var(--muted); font-size: 0.82rem; font-style: italic; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="10" width="16" height="11" rx="2" fill="#6366f1"/>
+      <path d="M8 10V7a4 4 0 018 0v3" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <circle cx="12" cy="15.5" r="1.5" fill="#fff"/>
+      <line x1="12" y1="17" x2="12" y2="19" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    Password Manager
+  </div>
+  <div class="nav-user">
+    <% if (user.isEmergency) { %><span style="color:#f59e0b;font-size:0.75rem;font-weight:600">⚠ EMERGENCY</span><% } %>
+    <span><%= user.displayName || user.username %></span>
+    <button id="theme-btn" class="btn-ghost" onclick="toggleTheme()" title="Toggle light/dark mode" style="padding:0.3rem 0.45rem;line-height:1"></button>
+    <a href="/logout"><button class="btn-ghost">Sign out</button></a>
+  </div>
+</nav>
+
+<div class="layout">
+  <!-- TREE PANEL -->
+  <div class="tree-panel">
+    <div class="tree-header">
+      <span>Folders</span>
+      <button class="icon-btn" title="New root folder" onclick="openCreateFolder(null)">＋</button>
+    </div>
+    <div class="tree-scroll" id="treeScroll">
+      <div class="tree-empty" id="treeEmpty">No folders yet.</div>
+    </div>
+  </div>
+
+  <!-- CONTENT PANEL -->
+  <div class="content-panel">
+    <div class="content-header">
+      <div class="breadcrumb" id="breadcrumb">Select a folder</div>
+      <div class="content-actions" id="contentActions" style="display:none">
+        <button class="btn btn-secondary" id="btnNewFolder" onclick="openCreateFolder(state.folderId)">+ Folder</button>
+        <button class="btn btn-primary" id="btnNewItem" onclick="openCreateItem()">+ Item</button>
+      </div>
+    </div>
+    <div class="content-scroll" id="contentScroll">
+      <div class="placeholder" id="placeholder">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+        <p>Select a folder to view its contents</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+
+<!-- Generic folder modal -->
+<div class="modal-backdrop hidden" id="folderModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="folderModalTitle">New Folder</h2>
+      <button class="modal-close" onclick="closeModal('folderModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="flash" id="folderModalFlash"></div>
+      <div class="form-group">
+        <label for="folderName">Folder name</label>
+        <input type="text" id="folderName" placeholder="e.g. Finance" maxlength="120">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('folderModal')">Cancel</button>
+      <button class="btn btn-primary" id="folderModalSave" onclick="saveFolderModal()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Item modal (create / edit) -->
+<div class="modal-backdrop hidden" id="itemModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="itemModalTitle">New Item</h2>
+      <button class="modal-close" onclick="closeModal('itemModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="flash" id="itemModalFlash"></div>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="itemName" placeholder="e.g. GitHub" maxlength="200">
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="itemUsername" placeholder="e.g. user@example.com" maxlength="300" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+          <label id="itemPasswordLabel" style="margin-bottom:0">Password</label>
+          <button type="button" class="btn-ghost" style="font-size:0.72rem;padding:0.2rem 0.5rem" onclick="generatePassword()">⚄ Generate</button>
+        </div>
+        <div class="pw-wrap">
+          <input type="password" id="itemPassword" placeholder="Enter password" autocomplete="new-password">
+          <button class="pw-toggle" type="button" onclick="togglePw('itemPassword', this)">👁</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (encrypted)</label>
+        <textarea id="itemNotes" placeholder="Any additional notes…"></textarea>
+      </div>
+      <div id="itemPermSection" style="display:none">
+        <hr class="divider">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+          <span style="font-size:0.78rem;color:var(--muted);font-weight:500">Permissions</span>
+          <button class="btn btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.65rem" onclick="openItemPermsFromModal()">Manage</button>
+        </div>
+        <div class="perm-list" id="itemPermInlineList"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('itemModal')">Cancel</button>
+      <button class="btn btn-primary" id="itemModalSave" onclick="saveItemModal()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reveal password modal -->
+<div class="modal-backdrop hidden" id="revealModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2 id="revealModalTitle">Password</h2>
+      <button class="modal-close" onclick="closeReveal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="reveal-box" id="revealContent">
+        <button class="icon-btn copy-btn" onclick="copyReveal()" title="Copy">⎘</button>
+        <span id="revealText"></span>
+      </div>
+      <div class="countdown" id="revealCountdown"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Permissions modal -->
+<div class="modal-backdrop hidden" id="permModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="permModalTitle">Permissions</h2>
+      <button class="modal-close" onclick="closeModal('permModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="flash" id="permModalFlash"></div>
+      <div class="perm-list" id="permList"></div>
+      <hr class="divider">
+      <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem">Add permission</p>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:120px;margin-bottom:0.5rem">
+          <label>Type</label>
+          <select id="permSubjectType" onchange="onPermTypeChange()">
+            <option value="group">Group (DN)</option>
+            <option value="user">User</option>
+            <option value="everyone">Everyone</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:2;min-width:180px;margin-bottom:0.5rem;position:relative">
+          <label>Subject</label>
+          <input type="text" id="permSubject" placeholder="Search by name…" autocomplete="off" oninput="onPermSubjectInput()">
+          <div id="permSuggestions" class="sug-box hidden"></div>
+        </div>
+        <div class="form-group" style="flex:1;min-width:100px;margin-bottom:0.5rem">
+          <label>Level</label>
+          <select id="permLevel">
+            <option value="read">read</option>
+            <option value="write">write</option>
+            <option value="admin">admin</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addPermission()" style="width:100%">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const state = {
+  folderId: null,
+  folderName: null,
+  folderLevel: null,
+  treeData: [],
+  // modal context
+  folderModalMode: 'create', // 'create' | 'rename'
+  folderModalParentId: null,
+  folderModalTargetId: null,
+  itemModalMode: 'create',
+  itemModalTargetId: null,
+  revealTimer: null,
+  permResourceType: null,
+  permResourceId: null,
+};
+
+// ─── TREE ────────────────────────────────────────────────────────────────────
+
+async function loadTree() {
+  const res = await fetch('/api/folders/tree');
+  const data = await res.json();
+  state.treeData = data.tree || [];
+  renderTree();
+}
+
+function renderTree() {
+  const scroll = document.getElementById('treeScroll');
+  const empty = document.getElementById('treeEmpty');
+
+  // Get or create a stable content container — never destroy treeEmpty via innerHTML
+  let content = document.getElementById('treeContent');
+  if (!content) {
+    content = document.createElement('div');
+    content.id = 'treeContent';
+    scroll.appendChild(content);
+  }
+
+  if (state.treeData.length === 0) {
+    empty.style.display = 'block';
+    content.innerHTML = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+  content.innerHTML = '';
+  for (const node of state.treeData) content.appendChild(renderNode(node, 0));
+}
+
+function renderNode(node, depth) {
+  const wrap = document.createElement('div');
+  wrap.className = 'tree-node';
+
+  const row = document.createElement('div');
+  row.className = 'tree-node-row' + (node.id === state.folderId ? ' active' : '');
+  row.dataset.id = node.id;
+
+  // Indent spacer
+  if (depth > 0) {
+    const spacer = document.createElement('div');
+    spacer.className = 'tree-indent';
+    spacer.style.width = (depth * 14) + 'px';
+    row.appendChild(spacer);
+  }
+
+  // Toggle
+  const toggle = document.createElement('div');
+  toggle.className = 'toggle-btn' + (node.children.length === 0 ? ' leaf' : '');
+  toggle.innerHTML = '▶';
+  row.appendChild(toggle);
+
+  // Icon + name
+  const icon = document.createElement('span');
+  icon.className = 'folder-icon';
+  icon.textContent = '📁';
+  row.appendChild(icon);
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'node-name';
+  nameEl.textContent = node.name;
+  nameEl.title = node.name;
+  row.appendChild(nameEl);
+
+  // Actions (shown on hover via CSS)
+  const actions = document.createElement('div');
+  actions.className = 'node-actions';
+
+  if (['write','admin'].includes(node.userLevel)) {
+    const renameBtn = document.createElement('button');
+    renameBtn.className = 'icon-btn';
+    renameBtn.title = 'Rename';
+    renameBtn.textContent = '✏';
+    renameBtn.onclick = (e) => { e.stopPropagation(); openRenameFolder(node.id, node.name); };
+    actions.appendChild(renameBtn);
+  }
+
+  if (node.userLevel === 'admin') {
+    const permBtn = document.createElement('button');
+    permBtn.className = 'icon-btn';
+    permBtn.title = 'Permissions';
+    permBtn.textContent = '🔒';
+    permBtn.onclick = (e) => { e.stopPropagation(); openPerms('folder', node.id, node.name); };
+    actions.appendChild(permBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-btn danger';
+    delBtn.title = 'Delete';
+    delBtn.textContent = '🗑';
+    delBtn.onclick = (e) => { e.stopPropagation(); deleteFolder(node.id, node.name); };
+    actions.appendChild(delBtn);
+  }
+
+  row.appendChild(actions);
+  wrap.appendChild(row);
+
+  // Children container
+  const childWrap = document.createElement('div');
+  childWrap.className = 'tree-children';
+  childWrap.style.display = 'none';
+
+  for (const child of node.children) {
+    childWrap.appendChild(renderNode(child, depth + 1));
+  }
+  wrap.appendChild(childWrap);
+
+  // Toggle expand
+  const hasChildren = node.children.length > 0;
+  toggle.onclick = (e) => {
+    e.stopPropagation();
+    if (!hasChildren) return;
+    const open = childWrap.style.display !== 'none';
+    childWrap.style.display = open ? 'none' : 'block';
+    toggle.classList.toggle('open', !open);
+    icon.textContent = (!open) ? '📂' : '📁';
+  };
+
+  // Select folder
+  row.onclick = () => {
+    document.querySelectorAll('.tree-node-row.active').forEach(r => r.classList.remove('active'));
+    row.classList.add('active');
+    loadFolder(node.id, node.name, node.userLevel);
+  };
+
+  return wrap;
+}
+
+// ─── FOLDER SELECTION ────────────────────────────────────────────────────────
+
+async function loadFolder(id, name, level) {
+  state.folderId = id;
+  state.folderName = name;
+  state.folderLevel = level;
+
+  document.getElementById('breadcrumb').innerHTML = `<strong>${escHtml(name)}</strong>`;
+  const actions = document.getElementById('contentActions');
+  actions.style.display = 'flex';
+  document.getElementById('btnNewFolder').style.display = ['write','admin'].includes(level) ? '' : 'none';
+  document.getElementById('btnNewItem').style.display = ['write','admin'].includes(level) ? '' : 'none';
+
+  const res = await fetch(`/api/folders/${id}/items`);
+  const data = await res.json();
+  renderItems(data.items || []);
+  if (level === 'admin') renderFolderPermPanel(id);
+}
+
+function renderItems(items) {
+  const scroll = document.getElementById('contentScroll');
+  if (items.length === 0) {
+    scroll.innerHTML = '<div class="placeholder"><p style="color:var(--muted)">This folder is empty.</p></div>';
+    return;
+  }
+  const table = document.createElement('table');
+  table.innerHTML = `<thead><tr>
+    <th>Name</th><th>Username</th><th>Access</th><th>Modified</th><th style="text-align:right">Actions</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+  for (const item of items) {
+    const tr = document.createElement('tr');
+    const modDate = item.modified_at ? new Date(item.modified_at).toLocaleDateString() : '—';
+    tr.innerHTML = `
+      <td class="item-name">${escHtml(item.name)}</td>
+      <td class="item-username">${escHtml(item.username || '—')}</td>
+      <td><span class="badge ${item.userLevel}">${item.userLevel}</span></td>
+      <td style="color:var(--muted);font-size:0.78rem">${modDate}</td>
+      <td class="item-actions"></td>
+    `;
+    const actCell = tr.querySelector('.item-actions');
+
+    // Reveal password button
+    const pwBtn = document.createElement('button');
+    pwBtn.className = 'icon-btn';
+    pwBtn.title = 'Reveal password';
+    pwBtn.textContent = '👁';
+    pwBtn.onclick = () => revealSecret(item.id, 'password', item.name);
+    actCell.appendChild(pwBtn);
+
+    // Reveal notes button
+    const notesBtn = document.createElement('button');
+    notesBtn.className = 'icon-btn';
+    notesBtn.title = 'View notes';
+    notesBtn.textContent = '📝';
+    notesBtn.onclick = () => revealSecret(item.id, 'notes', item.name);
+    actCell.appendChild(notesBtn);
+
+    if (['write','admin'].includes(item.userLevel)) {
+      const editBtn = document.createElement('button');
+      editBtn.className = 'icon-btn';
+      editBtn.title = 'Edit';
+      editBtn.textContent = '✏';
+      editBtn.onclick = () => openEditItem(item.id, item.name, item.username, item.userLevel);
+      actCell.appendChild(editBtn);
+    }
+
+    if (item.userLevel === 'admin') {
+      const permBtn = document.createElement('button');
+      permBtn.className = 'icon-btn';
+      permBtn.title = 'Permissions';
+      permBtn.textContent = '🔒';
+      permBtn.onclick = () => openPerms('item', item.id, item.name);
+      actCell.appendChild(permBtn);
+    }
+
+    if (['write','admin'].includes(item.userLevel)) {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'icon-btn danger';
+      delBtn.title = 'Delete';
+      delBtn.textContent = '🗑';
+      delBtn.onclick = () => deleteItem(item.id, item.name);
+      actCell.appendChild(delBtn);
+    }
+
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  scroll.innerHTML = '';
+  scroll.appendChild(table);
+}
+
+// ─── FOLDER MODAL ─────────────────────────────────────────────────────────────
+
+function openCreateFolder(parentId) {
+  state.folderModalMode = 'create';
+  state.folderModalParentId = parentId;
+  document.getElementById('folderModalTitle').textContent = parentId ? 'New Subfolder' : 'New Root Folder';
+  document.getElementById('folderModalSave').textContent = 'Create';
+  document.getElementById('folderName').value = '';
+  clearFlash('folderModalFlash');
+  openModal('folderModal');
+  setTimeout(() => document.getElementById('folderName').focus(), 50);
+}
+
+function openRenameFolder(id, currentName) {
+  state.folderModalMode = 'rename';
+  state.folderModalTargetId = id;
+  document.getElementById('folderModalTitle').textContent = 'Rename Folder';
+  document.getElementById('folderModalSave').textContent = 'Rename';
+  document.getElementById('folderName').value = currentName;
+  clearFlash('folderModalFlash');
+  openModal('folderModal');
+  setTimeout(() => document.getElementById('folderName').focus(), 50);
+}
+
+async function saveFolderModal() {
+  const name = document.getElementById('folderName').value.trim();
+  if (!name) return showFlash('folderModalFlash', 'Name is required', 'error');
+
+  if (state.folderModalMode === 'create') {
+    const res = await fetch('/api/folders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, parentId: state.folderModalParentId }),
+    });
+    if (!res.ok) {
+      const d = await res.json();
+      return showFlash('folderModalFlash', d.error || 'Error', 'error');
+    }
+  } else {
+    const res = await fetch(`/api/folders/${state.folderModalTargetId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) {
+      const d = await res.json();
+      return showFlash('folderModalFlash', d.error || 'Error', 'error');
+    }
+  }
+  closeModal('folderModal');
+  await loadTree();
+  if (state.folderId) loadFolder(state.folderId, state.folderName, state.folderLevel);
+}
+
+async function deleteFolder(id, name) {
+  if (!confirm(`Delete folder "${name}" and all its contents? This cannot be undone.`)) return;
+  const res = await fetch(`/api/folders/${id}`, { method: 'DELETE' });
+  if (!res.ok) { alert('Delete failed'); return; }
+  if (state.folderId === id) {
+    state.folderId = null;
+    document.getElementById('contentActions').style.display = 'none';
+    document.getElementById('breadcrumb').textContent = 'Select a folder';
+    document.getElementById('contentScroll').innerHTML = '<div class="placeholder"><p style="color:var(--muted)">Select a folder to view its contents</p></div>';
+  }
+  await loadTree();
+}
+
+// ─── ITEM MODAL ───────────────────────────────────────────────────────────────
+
+function openCreateItem() {
+  if (!state.folderId) return;
+  state.itemModalMode = 'create';
+  state.itemModalTargetId = null;
+  document.getElementById('itemModalTitle').textContent = 'New Item';
+  document.getElementById('itemModalSave').textContent = 'Create';
+  document.getElementById('itemPasswordLabel').textContent = 'Password';
+  document.getElementById('itemName').value = '';
+  document.getElementById('itemUsername').value = '';
+  document.getElementById('itemPassword').value = '';
+  document.getElementById('itemNotes').value = '';
+  document.getElementById('itemPermSection').style.display = 'none';
+  clearFlash('itemModalFlash');
+  openModal('itemModal');
+  setTimeout(() => document.getElementById('itemName').focus(), 50);
+}
+
+async function openEditItem(id, name, username, level) {
+  state.itemModalMode = 'edit';
+  state.itemModalTargetId = id;
+  document.getElementById('itemModalTitle').textContent = 'Edit Item';
+  document.getElementById('itemModalSave').textContent = 'Save';
+  document.getElementById('itemPasswordLabel').textContent = 'Password (leave blank to keep current)';
+  document.getElementById('itemName').value = name;
+  document.getElementById('itemUsername').value = username || '';
+  document.getElementById('itemPassword').value = '';
+  // Load notes
+  const res = await fetch(`/api/items/${id}/notes`);
+  const data = await res.json();
+  document.getElementById('itemNotes').value = data.notes || '';
+  document.getElementById('itemPermSection').style.display = level === 'admin' ? 'block' : 'none';
+  clearFlash('itemModalFlash');
+  openModal('itemModal');
+  setTimeout(() => document.getElementById('itemName').focus(), 50);
+  refreshItemPermInlineList();
+}
+
+async function saveItemModal() {
+  const name = document.getElementById('itemName').value.trim();
+  if (!name) return showFlash('itemModalFlash', 'Name is required', 'error');
+
+  const body = {
+    name,
+    username: document.getElementById('itemUsername').value.trim(),
+    password: document.getElementById('itemPassword').value,
+    notes: document.getElementById('itemNotes').value,
+  };
+
+  let res;
+  if (state.itemModalMode === 'create') {
+    res = await fetch(`/api/folders/${state.folderId}/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } else {
+    res = await fetch(`/api/items/${state.itemModalTargetId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  }
+
+  if (!res.ok) {
+    const d = await res.json();
+    return showFlash('itemModalFlash', d.error || 'Error', 'error');
+  }
+  closeModal('itemModal');
+  loadFolder(state.folderId, state.folderName, state.folderLevel);
+}
+
+async function deleteItem(id, name) {
+  if (!confirm(`Delete item "${name}"? This cannot be undone.`)) return;
+  const res = await fetch(`/api/items/${id}`, { method: 'DELETE' });
+  if (!res.ok) { alert('Delete failed'); return; }
+  loadFolder(state.folderId, state.folderName, state.folderLevel);
+}
+
+// ─── REVEAL MODAL ─────────────────────────────────────────────────────────────
+
+async function revealSecret(id, type, itemName) {
+  const res = await fetch(`/api/items/${id}/${type}`);
+  if (!res.ok) { alert('Access denied or decryption error'); return; }
+  const data = await res.json();
+  const value = data[type] || '';
+
+  if (state.revealTimer) clearInterval(state.revealTimer);
+
+  document.getElementById('revealModalTitle').textContent =
+    (type === 'password' ? 'Password' : 'Notes') + ' — ' + itemName;
+  document.getElementById('revealText').textContent = value || '(empty)';
+  openModal('revealModal');
+
+  let secs = 30;
+  const countdown = document.getElementById('revealCountdown');
+  countdown.textContent = `Closes in ${secs}s`;
+  state.revealTimer = setInterval(() => {
+    secs--;
+    if (secs <= 0) { closeReveal(); }
+    else { countdown.textContent = `Closes in ${secs}s`; }
+  }, 1000);
+}
+
+function closeReveal() {
+  if (state.revealTimer) { clearInterval(state.revealTimer); state.revealTimer = null; }
+  document.getElementById('revealText').textContent = '';
+  closeModal('revealModal');
+}
+
+function copyReveal() {
+  const text = document.getElementById('revealText').textContent;
+  navigator.clipboard.writeText(text).catch(() => {});
+}
+
+// ─── PERMISSIONS MODAL ────────────────────────────────────────────────────────
+
+async function openPerms(resourceType, resourceId, name) {
+  state.permResourceType = resourceType;
+  state.permResourceId = resourceId;
+  document.getElementById('permModalTitle').textContent = `Permissions — ${name}`;
+  document.getElementById('permSubject').value = '';
+  document.getElementById('permSubjectType').value = 'group';
+  _selectedSubject = '';
+  hideSuggestions();
+  // Reset placeholder for default type (group)
+  document.getElementById('permSubject').placeholder = 'Search AD group by name…';
+  document.getElementById('permSubject').disabled = false;
+  clearFlash('permModalFlash');
+  await refreshPermList();
+  openModal('permModal');
+}
+
+async function refreshPermList() {
+  const type = state.permResourceType;
+  const id = state.permResourceId;
+  const endpoint = type === 'folder' ? `/api/folders/${id}/permissions` : `/api/items/${id}/permissions`;
+  const res = await fetch(endpoint);
+  if (!res.ok) return;
+  const data = await res.json();
+  const list = document.getElementById('permList');
+  list.innerHTML = '';
+  if (!data.permissions || data.permissions.length === 0) {
+    list.innerHTML = '<span class="perm-empty">No explicit permissions (inherits from parent)</span>';
+    return;
+  }
+  for (const p of data.permissions) {
+    const row = document.createElement('div');
+    row.className = 'perm-row';
+    const isEveryone = p.subject === '*';
+    const displaySubject = isEveryone ? 'Everyone (all users)' : (
+      p.subject_type === 'group' ? cnFromDN(p.subject) : escHtml(p.subject)
+    );
+    const displayType = isEveryone ? 'everyone' : p.subject_type;
+    const fullTitle = isEveryone ? '' : p.subject;
+    row.innerHTML = `
+      <span class="badge ${p.level}">${p.level}</span>
+      <span style="color:var(--muted);font-size:0.7rem">${escHtml(displayType)}</span>
+      <span class="perm-subject" title="${escHtml(fullTitle)}">${escHtml(displaySubject)}</span>
+      <button class="icon-btn danger" title="Remove" onclick="removePermission('${escAttr(p.subject_type)}','${escAttr(p.subject)}')">✕</button>
+    `;
+    list.appendChild(row);
+  }
+}
+
+function onPermTypeChange() {
+  const type = document.getElementById('permSubjectType').value;
+  const subjectInput = document.getElementById('permSubject');
+  if (type === 'everyone') {
+    subjectInput.value = '';
+    subjectInput.disabled = true;
+    subjectInput.placeholder = 'All authenticated users';
+  } else {
+    subjectInput.disabled = false;
+    subjectInput.placeholder = type === 'group'
+      ? 'CN=Finance,OU=Groups,DC=corp,DC=com'
+      : 'username';
+  }
+}
+
+async function addPermission() {
+  let subjectType = document.getElementById('permSubjectType').value;
+  let subject = document.getElementById('permSubject').value.trim();
+  const level = document.getElementById('permLevel').value;
+
+  // Use the value selected from autocomplete (full DN/username), else raw typed input
+  subject = _selectedSubject || subject;
+
+  // Translate 'everyone' to internal wildcard representation
+  if (subjectType === 'everyone') {
+    subjectType = 'group';
+    subject = '*';
+  }
+
+  if (!subject) return showFlash('permModalFlash', 'Subject is required — search and select from the list', 'error');
+
+  const type = state.permResourceType;
+  const id = state.permResourceId;
+  const endpoint = type === 'folder' ? `/api/folders/${id}/permissions` : `/api/items/${id}/permissions`;
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subjectType, subject, level }),
+  });
+  if (!res.ok) {
+    const d = await res.json();
+    return showFlash('permModalFlash', d.error || 'Error', 'error');
+  }
+  document.getElementById('permSubject').value = '';
+  _selectedSubject = '';
+  await refreshPermList();
+}
+
+async function removePermission(subjectType, subject) {
+  const type = state.permResourceType;
+  const id = state.permResourceId;
+  const endpoint = type === 'folder' ? `/api/folders/${id}/permissions` : `/api/items/${id}/permissions`;
+
+  await fetch(endpoint, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subjectType, subject }),
+  });
+  await refreshPermList();
+}
+
+// ─── UTILITIES ────────────────────────────────────────────────────────────────
+
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+function showFlash(id, msg, type) {
+  const el = document.getElementById(id);
+  el.className = `flash ${type}`;
+  el.textContent = msg;
+}
+function clearFlash(id) {
+  const el = document.getElementById(id);
+  el.className = 'flash';
+  el.textContent = '';
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(str) {
+  return String(str).replace(/'/g, "\\'");
+}
+
+function togglePw(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const isText = input.type === 'text';
+  input.type = isText ? 'password' : 'text';
+  btn.textContent = isText ? '👁' : '🙈';
+}
+
+// Close modal on backdrop click
+document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) {
+      const id = backdrop.id;
+      if (id === 'revealModal') closeReveal();
+      else closeModal(id);
+    }
+  });
+});
+
+// Keyboard: Enter submits, Escape closes
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (!document.getElementById('revealModal').classList.contains('hidden')) closeReveal();
+    else document.querySelectorAll('.modal-backdrop:not(.hidden)').forEach(m => closeModal(m.id));
+  }
+  if (e.key === 'Enter') {
+    if (!document.getElementById('folderModal').classList.contains('hidden')) saveFolderModal();
+    else if (!document.getElementById('itemModal').classList.contains('hidden') && e.target.tagName !== 'TEXTAREA') saveItemModal();
+  }
+});
+
+// ─── LDAP AUTOCOMPLETE ───────────────────────────────────────────────────────
+
+// Value actually submitted to the API (DN for groups, username for users)
+let _selectedSubject = '';
+let _searchTimer = null;
+
+function cnFromDN(dn) {
+  const m = /^CN=([^,]+)/i.exec(dn || '');
+  return m ? m[1] : dn;
+}
+
+function onPermTypeChange() {
+  const type = document.getElementById('permSubjectType').value;
+  const inp = document.getElementById('permSubject');
+  _selectedSubject = '';
+  hideSuggestions();
+  inp.value = '';
+  if (type === 'everyone') {
+    inp.disabled = true;
+    inp.placeholder = 'All authenticated users';
+  } else {
+    inp.disabled = false;
+    inp.placeholder = type === 'group' ? 'Search AD group by name…' : 'Search AD user by name or username…';
+  }
+}
+
+function onPermSubjectInput() {
+  _selectedSubject = '';
+  clearTimeout(_searchTimer);
+  const q = document.getElementById('permSubject').value.trim();
+  if (q.length < 2) { hideSuggestions(); return; }
+  const type = document.getElementById('permSubjectType').value;
+  if (type === 'everyone') return;
+  showSearching();
+  _searchTimer = setTimeout(() => doLdapSearch(type, q), 350);
+}
+
+function showSearching() {
+  const box = document.getElementById('permSuggestions');
+  box.innerHTML = '<div class="sug-searching">Searching…</div>';
+  box.classList.remove('hidden');
+}
+
+async function doLdapSearch(type, q) {
+  const endpoint = type === 'group'
+    ? `/api/ldap/groups?q=${encodeURIComponent(q)}`
+    : `/api/ldap/users?q=${encodeURIComponent(q)}`;
+  try {
+    const res = await fetch(endpoint);
+    if (!res.ok) throw new Error('search failed');
+    const data = await res.json();
+    renderSuggestions(type, data.results || []);
+  } catch {
+    const box = document.getElementById('permSuggestions');
+    box.innerHTML = '<div class="sug-searching" style="color:var(--danger)">Search failed — check LDAP connection</div>';
+    box.classList.remove('hidden');
+  }
+}
+
+function renderSuggestions(type, results) {
+  const box = document.getElementById('permSuggestions');
+  box.innerHTML = '';
+  if (results.length === 0) {
+    box.innerHTML = '<div class="sug-searching">No results</div>';
+    box.classList.remove('hidden');
+    return;
+  }
+  for (const r of results) {
+    const div = document.createElement('div');
+    div.className = 'sug-item';
+    if (type === 'group') {
+      div.innerHTML = `<div class="sug-name">${escHtml(r.name)}</div><div class="sug-sub">${escHtml(r.dn)}</div>`;
+      div.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // prevent blur before click fires
+        selectSubject(r.dn, r.name);
+      });
+    } else {
+      const sub = [r.username, r.mail].filter(Boolean).join(' · ');
+      div.innerHTML = `<div class="sug-name">${escHtml(r.displayName)}</div><div class="sug-sub">${escHtml(sub)}</div>`;
+      div.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        selectSubject(r.username, r.displayName);
+      });
+    }
+    box.appendChild(div);
+  }
+  box.classList.remove('hidden');
+}
+
+function selectSubject(value, label) {
+  _selectedSubject = value;
+  document.getElementById('permSubject').value = label;
+  hideSuggestions();
+}
+
+function hideSuggestions() {
+  document.getElementById('permSuggestions').classList.add('hidden');
+}
+
+// Close suggestions when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#permSuggestions') && e.target.id !== 'permSubject') {
+    hideSuggestions();
+  }
+});
+
+// Reset autocomplete state when opening the permissions modal
+const _origOpenPerms = openPerms;
+// (openPerms is already defined above; we patch addPermission and openPerms inline below)
+
+// ─── PASSWORD GENERATOR ───────────────────────────────────────────────────────
+
+function generatePassword() {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>?';
+  const len = 20;
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  const pw = Array.from(bytes).map(b => charset[b % charset.length]).join('');
+  const input = document.getElementById('itemPassword');
+  input.value = pw;
+  input.type = 'text';
+  const toggle = input.closest('.pw-wrap').querySelector('.pw-toggle');
+  if (toggle) toggle.textContent = '🙈';
+}
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  updateThemeIcon();
+}
+
+function updateThemeIcon() {
+  const btn = document.getElementById('theme-btn');
+  if (!btn) return;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  btn.innerHTML = isDark
+    ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
+    : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+}
+
+// ─── INLINE PERMISSIONS ───────────────────────────────────────────────────────
+
+async function renderFolderPermPanel(folderId) {
+  const scroll = document.getElementById('contentScroll');
+  const panel = document.createElement('div');
+  panel.id = 'folderPermPanel';
+  panel.style.cssText = 'margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem';
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+      <span style="font-size:0.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em">Folder Permissions</span>
+      <button class="btn btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.65rem" onclick="openPerms('folder','${folderId}',state.folderName)">Manage</button>
+    </div>
+    <div class="perm-list" id="folderPermInlineList"><span class="perm-empty">Loading…</span></div>
+  `;
+  scroll.appendChild(panel);
+  await refreshInlinePermList('folder', folderId, 'folderPermInlineList');
+}
+
+async function refreshInlinePermList(resourceType, resourceId, listElId) {
+  const endpoint = resourceType === 'folder'
+    ? `/api/folders/${resourceId}/permissions`
+    : `/api/items/${resourceId}/permissions`;
+  const list = document.getElementById(listElId);
+  if (!list) return;
+  try {
+    const res = await fetch(endpoint);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    list.innerHTML = '';
+    if (!data.permissions || data.permissions.length === 0) {
+      list.innerHTML = '<span class="perm-empty">No explicit permissions (inherits from parent)</span>';
+      return;
+    }
+    for (const p of data.permissions) {
+      const row = document.createElement('div');
+      row.className = 'perm-row';
+      const isEveryone = p.subject === '*';
+      const displaySubject = isEveryone ? 'Everyone (all users)' : (
+        p.subject_type === 'group' ? cnFromDN(p.subject) : escHtml(p.subject)
+      );
+      const displayType = isEveryone ? 'everyone' : p.subject_type;
+      const fullTitle = isEveryone ? '' : p.subject;
+      row.innerHTML = `
+        <span class="badge ${p.level}">${p.level}</span>
+        <span style="color:var(--muted);font-size:0.7rem">${escHtml(displayType)}</span>
+        <span class="perm-subject" title="${escHtml(fullTitle)}">${escHtml(displaySubject)}</span>
+      `;
+      list.appendChild(row);
+    }
+  } catch {
+    list.innerHTML = '<span class="perm-empty" style="color:var(--danger)">Failed to load</span>';
+  }
+}
+
+function openItemPermsFromModal() {
+  const id = state.itemModalTargetId;
+  const name = document.getElementById('itemName').value || 'Item';
+  closeModal('itemModal');
+  openPerms('item', id, name);
+}
+
+async function refreshItemPermInlineList() {
+  if (state.itemModalMode !== 'edit' || !state.itemModalTargetId) return;
+  await refreshInlinePermList('item', state.itemModalTargetId, 'itemPermInlineList');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+updateThemeIcon();
+loadTree();
+</script>
+</body>
+</html>
