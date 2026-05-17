@@ -13,11 +13,19 @@ function findHighestApplicableLevel(user, perms) {
   const userSubjects = new Set([user.username.toLowerCase()]);
   for (const g of (user.memberOf || [])) userSubjects.add(g.toLowerCase());
 
+  // Explicit hide (deny) takes priority over any grant at the same resource level
+  for (const p of perms) {
+    if (p.level !== 'hide') continue;
+    if (p.subject === '*') return null;
+    if (p.subject_type === 'user'  && userSubjects.has(p.subject.toLowerCase())) return null;
+    if (p.subject_type === 'group' && userSubjects.has(p.subject.toLowerCase())) return null;
+  }
+
   for (const tier of ['admin', 'write', 'read']) {
     for (const p of perms) {
       if (p.level !== tier) continue;
-      if (p.subject === '*') return tier;  // wildcard = everyone
-      if (p.subject_type === 'user' && userSubjects.has(p.subject.toLowerCase())) return tier;
+      if (p.subject === '*') return tier;
+      if (p.subject_type === 'user'  && userSubjects.has(p.subject.toLowerCase())) return tier;
       if (p.subject_type === 'group' && userSubjects.has(p.subject.toLowerCase())) return tier;
     }
   }
@@ -27,7 +35,11 @@ function findHighestApplicableLevel(user, perms) {
 function resolvePermission(user, resourceType, resourceId) {
   // Emergency login and global admin bypass all ACL checks
   if (user.isEmergency) return 'admin';
-  if (config.globalAdmin && (user.memberOf || []).some(g => g.toLowerCase() === config.globalAdmin)) return 'admin';
+  if (config.globalAdmin) {
+    const ga = config.globalAdmin;
+    if (user.username.toLowerCase() === ga) return 'admin';
+    if ((user.memberOf || []).some(g => g.toLowerCase() === ga)) return 'admin';
+  }
 
   const s = stmts();
   const perms = s.getPermissionsFor.all(resourceType, resourceId);

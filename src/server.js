@@ -15,6 +15,7 @@ const authRouter = require('./routes/auth');
 const foldersRouter = require('./routes/folders');
 const itemsRouter = require('./routes/items');
 const ldapRouter = require('./routes/ldap');
+const auditRouter = require('./routes/audit');
 
 const app = express();
 
@@ -76,6 +77,7 @@ app.use('/', authRouter);
 app.use('/api/folders', foldersRouter);
 app.use('/api', itemsRouter);
 app.use('/api/ldap', ldapRouter);
+app.use('/api', auditRouter);
 
 app.get('/', requireAuth, (req, res) => res.redirect('/app'));
 app.get('/app', requireAuth, (req, res) => res.render('app', { user: req.user }));

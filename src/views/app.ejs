@@ -84,7 +84,10 @@
     .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
     .btn-secondary:hover { border-color: var(--accent); }
 
-    .content-scroll { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; }
+    /* CONTENT BODY — split into list + detail */
+    .content-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .list-area { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; min-height: 0; }
+
     .placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--muted); gap: 0.75rem; }
     .placeholder svg { width: 48px; height: 48px; opacity: 0.3; }
     .placeholder p { font-size: 0.9rem; }
@@ -92,15 +95,35 @@
     /* ITEMS TABLE */
     table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     th { text-align: left; padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
-    td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
     tr:hover td { background: var(--surface2); }
+    tr.item-row { cursor: pointer; }
+    tr.item-row.selected td { background: rgba(99,102,241,0.12) !important; }
     .item-name { font-weight: 500; }
-    .item-username { color: var(--muted); font-family: monospace; font-size: 0.8rem; }
+    .item-username-cell { color: var(--muted); font-family: monospace; font-size: 0.8rem; white-space: nowrap; }
+    .item-pw-cell { white-space: nowrap; color: var(--muted); letter-spacing: 0.12em; font-size: 0.78rem; }
     .item-actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
     .badge { font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 4px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
     .badge.read { color: #60a5fa; border-color: #1e3a5f; }
     .badge.write { color: #34d399; border-color: #064e3b; }
     .badge.admin { color: #f472b6; border-color: #500724; }
+    .row-copy-btn { opacity: 0; transition: opacity 0.1s; margin-left: 0.25rem; }
+    tr:hover .row-copy-btn { opacity: 1; }
+
+    /* DETAIL PANEL (KeePass bottom panel) */
+    .detail-panel { flex-shrink: 0; height: 210px; border-top: 2px solid var(--border); background: var(--surface); overflow-y: auto; display: flex; flex-direction: column; }
+    .detail-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 0.82rem; gap: 0.5rem; }
+    .detail-content { padding: 0.6rem 1.25rem; display: flex; flex-direction: column; gap: 0.45rem; height: 100%; }
+    .detail-title-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-shrink: 0; }
+    .detail-title { font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .detail-title-btns { display: flex; gap: 0.4rem; flex-shrink: 0; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem 2rem; flex-shrink: 0; }
+    .detail-field { display: flex; flex-direction: column; gap: 0.1rem; }
+    .detail-label { font-size: 0.65rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .detail-val-row { display: flex; align-items: center; gap: 0.3rem; }
+    .detail-val { font-size: 0.82rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .detail-val.mono { font-family: monospace; }
+    .detail-footer { display: flex; gap: 0.5rem; padding-top: 0.25rem; margin-top: auto; flex-shrink: 0; }
 
     /* MODAL */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
@@ -144,6 +167,31 @@
     .sug-name { font-size: 0.84rem; font-weight: 500; }
     .sug-sub { font-size: 0.72rem; color: var(--muted); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sug-searching { padding: 0.6rem 0.75rem; color: var(--muted); font-size: 0.82rem; font-style: italic; }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.45rem 0.9rem; font-size: 0.82rem; color: var(--text); z-index: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.35); opacity: 0; pointer-events: none; transition: opacity 0.18s, transform 0.18s; transform: translateY(6px); }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.toast-ok { border-color: var(--success); color: var(--success); }
+    .toast.toast-error { border-color: var(--danger); color: var(--danger); }
+
+    /* SUBFOLDER CARDS */
+    .subfolder-section { margin-bottom: 0.75rem; }
+    .section-hdr { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; padding: 0 0.1rem; }
+    .subfolder-grid { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+    .folder-card { display: flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.84rem; user-select: none; transition: border-color 0.15s, background 0.15s; }
+    .folder-card:hover { border-color: var(--accent); background: var(--surface); }
+    .folder-card-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .badge.hide { color: #f87171; border-color: #7f1d1d; background: rgba(239,68,68,0.1); }
+
+    /* AUDIT TABLE */
+    .audit-table { font-size: 0.8rem; }
+    .audit-table th { font-size: 0.72rem; }
+    .audit-table td { padding: 0.45rem 0.75rem; }
+    .audit-action { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .audit-action-reveal { color: #60a5fa; }
+    .audit-action-create { color: var(--success); }
+    .audit-action-edit   { color: var(--warn); }
+    .audit-action-delete { color: var(--danger); }
   </style>
 </head>
 <body>
@@ -162,6 +210,7 @@
     <% if (user.isEmergency) { %><span style="color:#f59e0b;font-size:0.75rem;font-weight:600">⚠ EMERGENCY</span><% } %>
     <span><%= user.displayName || user.username %></span>
     <button id="theme-btn" class="btn-ghost" onclick="toggleTheme()" title="Toggle light/dark mode" style="padding:0.3rem 0.45rem;line-height:1"></button>
+    <button class="btn-ghost" onclick="openAuditLog()" title="View audit log">Audit Log</button>
     <a href="/logout"><button class="btn-ghost">Sign out</button></a>
   </div>
 </nav>
@@ -171,7 +220,6 @@
   <div class="tree-panel">
     <div class="tree-header">
       <span>Folders</span>
-      <button class="icon-btn" title="New root folder" onclick="openCreateFolder(null)">＋</button>
     </div>
     <div class="tree-scroll" id="treeScroll">
       <div class="tree-empty" id="treeEmpty">No folders yet.</div>
@@ -187,10 +235,52 @@
         <button class="btn btn-primary" id="btnNewItem" onclick="openCreateItem()">+ Item</button>
       </div>
     </div>
-    <div class="content-scroll" id="contentScroll">
-      <div class="placeholder" id="placeholder">
-        <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-        <p>Select a folder to view its contents</p>
+    <!-- Split body: list (top) + detail panel (bottom) -->
+    <div class="content-body">
+      <div class="list-area" id="contentScroll">
+        <div class="placeholder" id="placeholder">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+          <p>Select a folder to view its contents</p>
+        </div>
+      </div>
+      <!-- KeePass-style detail panel -->
+      <div class="detail-panel" id="detailPanel">
+        <div class="detail-empty" id="detailEmpty">Select an entry to view details</div>
+        <div class="detail-content" id="detailContent" style="display:none">
+          <div class="detail-title-row">
+            <span class="detail-title" id="detailTitle"></span>
+            <div class="detail-title-btns" id="detailBtns"></div>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-field">
+              <span class="detail-label">Username</span>
+              <div class="detail-val-row">
+                <span class="detail-val mono" id="detailUsername"></span>
+                <button class="icon-btn" id="detailCopyUser" onclick="copyUsernameFromDetail()" title="Copy username">⎘</button>
+              </div>
+            </div>
+            <div class="detail-field">
+              <span class="detail-label">Password</span>
+              <div class="detail-val-row">
+                <span class="detail-val" style="letter-spacing:0.25em;color:var(--muted)">••••••••</span>
+                <button class="icon-btn" onclick="copyPasswordFromDetail()" title="Copy password">⎘</button>
+                <button class="icon-btn" onclick="revealPasswordFromDetail()" title="Reveal password">👁</button>
+              </div>
+            </div>
+            <div class="detail-field">
+              <span class="detail-label">Modified</span>
+              <span class="detail-val" id="detailModified" style="color:var(--muted);font-size:0.78rem"></span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-label">Created</span>
+              <span class="detail-val" id="detailCreated" style="color:var(--muted);font-size:0.78rem"></span>
+            </div>
+          </div>
+          <div class="detail-footer">
+            <button class="btn-ghost" style="font-size:0.78rem;padding:0.25rem 0.6rem" onclick="revealNotesFromDetail()">View Notes</button>
+            <button class="btn-ghost" id="detailHistoryBtn" style="font-size:0.78rem;padding:0.25rem 0.6rem;display:none" onclick="openItemHistory()">History</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -242,8 +332,15 @@
           <button type="button" class="btn-ghost" style="font-size:0.72rem;padding:0.2rem 0.5rem" onclick="generatePassword()">⚄ Generate</button>
         </div>
         <div class="pw-wrap">
-          <input type="password" id="itemPassword" placeholder="Enter password" autocomplete="new-password">
+          <input type="password" id="itemPassword" placeholder="Enter password" autocomplete="new-password" oninput="onPasswordInput()">
           <button class="pw-toggle" type="button" onclick="togglePw('itemPassword', this)">👁</button>
+        </div>
+        <div id="pwFeedback" style="display:none;margin-top:0.4rem">
+          <div style="background:var(--border);height:4px;border-radius:2px;overflow:hidden;margin-bottom:0.35rem">
+            <div id="pwStrengthBar" style="height:100%;border-radius:2px;width:0;transition:width .3s,background .3s"></div>
+          </div>
+          <div id="pwStrengthMsgs" style="font-size:0.73rem;display:flex;flex-direction:column;gap:0.15rem"></div>
+          <div id="pwDupMsg" style="font-size:0.73rem;margin-top:0.15rem"></div>
         </div>
       </div>
       <div class="form-group">
@@ -266,7 +363,7 @@
   </div>
 </div>
 
-<!-- Reveal password modal -->
+<!-- Reveal password/notes modal -->
 <div class="modal-backdrop hidden" id="revealModal">
   <div class="modal" style="max-width:420px">
     <div class="modal-header">
@@ -315,6 +412,7 @@
             <option value="read">read</option>
             <option value="write">write</option>
             <option value="admin">admin</option>
+            <option value="hide">hide (deny)</option>
           </select>
         </div>
       </div>
@@ -323,6 +421,48 @@
   </div>
 </div>
 
+<!-- Audit log modal -->
+<div class="modal-backdrop hidden" id="auditModal">
+  <div class="modal" style="max-width:860px;width:95vw">
+    <div class="modal-header">
+      <h2 id="auditModalTitle">Audit Log</h2>
+      <button class="modal-close" onclick="closeModal('auditModal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0;display:flex;flex-direction:column;max-height:72vh;overflow:hidden">
+      <div id="auditFilterRow" style="padding:0.6rem 1rem;border-bottom:1px solid var(--border);display:flex;gap:0.75rem;align-items:center;flex-shrink:0">
+        <select id="auditFilter" style="width:auto;padding:0.3rem 0.6rem;font-size:0.8rem" onchange="renderAuditEntries()">
+          <option value="">All actions</option>
+          <option value="reveal_password">Reveals: password</option>
+          <option value="reveal_notes">Reveals: notes</option>
+          <option value="create_item">Created items</option>
+          <option value="edit_item">Edited items</option>
+          <option value="delete_item">Deleted items</option>
+          <option value="create_folder">Created folders</option>
+          <option value="rename_folder">Renamed folders</option>
+          <option value="delete_folder">Deleted folders</option>
+        </select>
+        <span id="auditCount" style="font-size:0.78rem;color:var(--muted)"></span>
+      </div>
+      <div style="flex:1;overflow-y:auto;min-height:0">
+        <table class="audit-table" style="margin:0">
+          <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Resource</th><th>IP</th></tr></thead>
+          <tbody id="auditBody"></tbody>
+        </table>
+        <div id="auditLoading" style="padding:2rem;text-align:center;color:var(--muted);font-size:0.85rem">Loading…</div>
+        <div id="auditEmpty" style="display:none;padding:2rem;text-align:center;color:var(--muted);font-size:0.85rem"></div>
+      </div>
+      <div style="padding:0.6rem 1rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:0.75rem;flex-shrink:0">
+        <button class="btn btn-secondary" id="auditPrevBtn" onclick="auditPrev()" style="font-size:0.78rem;padding:0.25rem 0.65rem">← Prev</button>
+        <span id="auditPageInfo" style="flex:1;text-align:center;font-size:0.78rem;color:var(--muted)"></span>
+        <button class="btn btn-secondary" id="auditNextBtn" onclick="auditNext()" style="font-size:0.78rem;padding:0.25rem 0.65rem">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast" class="toast"></div>
+
 <script>
 const state = {
   folderId: null,
@@ -330,7 +470,7 @@ const state = {
   folderLevel: null,
   treeData: [],
   // modal context
-  folderModalMode: 'create', // 'create' | 'rename'
+  folderModalMode: 'create',
   folderModalParentId: null,
   folderModalTargetId: null,
   itemModalMode: 'create',
@@ -338,6 +478,16 @@ const state = {
   revealTimer: null,
   permResourceType: null,
   permResourceId: null,
+  // detail panel
+  selectedItemId: null,
+  selectedItem: null,
+  // audit log
+  auditEntries: [],
+  auditOffset: 0,
+  auditLimit: 100,
+  auditTotal: 0,
+  auditMode: 'full',
+  auditItemId: null,
 };
 
 // ─── TREE ────────────────────────────────────────────────────────────────────
@@ -353,7 +503,6 @@ function renderTree() {
   const scroll = document.getElementById('treeScroll');
   const empty = document.getElementById('treeEmpty');
 
-  // Get or create a stable content container — never destroy treeEmpty via innerHTML
   let content = document.getElementById('treeContent');
   if (!content) {
     content = document.createElement('div');
@@ -380,7 +529,6 @@ function renderNode(node, depth) {
   row.className = 'tree-node-row' + (node.id === state.folderId ? ' active' : '');
   row.dataset.id = node.id;
 
-  // Indent spacer
   if (depth > 0) {
     const spacer = document.createElement('div');
     spacer.className = 'tree-indent';
@@ -388,13 +536,11 @@ function renderNode(node, depth) {
     row.appendChild(spacer);
   }
 
-  // Toggle
   const toggle = document.createElement('div');
   toggle.className = 'toggle-btn' + (node.children.length === 0 ? ' leaf' : '');
   toggle.innerHTML = '▶';
   row.appendChild(toggle);
 
-  // Icon + name
   const icon = document.createElement('span');
   icon.className = 'folder-icon';
   icon.textContent = '📁';
@@ -406,11 +552,12 @@ function renderNode(node, depth) {
   nameEl.title = node.name;
   row.appendChild(nameEl);
 
-  // Actions (shown on hover via CSS)
   const actions = document.createElement('div');
   actions.className = 'node-actions';
 
-  if (['write','admin'].includes(node.userLevel)) {
+  const isRoot = depth === 0;
+
+  if (!isRoot && ['write','admin'].includes(node.userLevel)) {
     const renameBtn = document.createElement('button');
     renameBtn.className = 'icon-btn';
     renameBtn.title = 'Rename';
@@ -419,7 +566,7 @@ function renderNode(node, depth) {
     actions.appendChild(renameBtn);
   }
 
-  if (node.userLevel === 'admin') {
+  if (!isRoot && node.userLevel === 'admin') {
     const permBtn = document.createElement('button');
     permBtn.className = 'icon-btn';
     permBtn.title = 'Permissions';
@@ -438,7 +585,6 @@ function renderNode(node, depth) {
   row.appendChild(actions);
   wrap.appendChild(row);
 
-  // Children container
   const childWrap = document.createElement('div');
   childWrap.className = 'tree-children';
   childWrap.style.display = 'none';
@@ -448,7 +594,6 @@ function renderNode(node, depth) {
   }
   wrap.appendChild(childWrap);
 
-  // Toggle expand
   const hasChildren = node.children.length > 0;
   toggle.onclick = (e) => {
     e.stopPropagation();
@@ -459,11 +604,10 @@ function renderNode(node, depth) {
     icon.textContent = (!open) ? '📂' : '📁';
   };
 
-  // Select folder
   row.onclick = () => {
     document.querySelectorAll('.tree-node-row.active').forEach(r => r.classList.remove('active'));
     row.classList.add('active');
-    loadFolder(node.id, node.name, node.userLevel);
+    loadFolder(node.id, node.name, node.userLevel, !node.parent_id);
   };
 
   return wrap;
@@ -471,10 +615,11 @@ function renderNode(node, depth) {
 
 // ─── FOLDER SELECTION ────────────────────────────────────────────────────────
 
-async function loadFolder(id, name, level) {
+async function loadFolder(id, name, level, isRoot) {
   state.folderId = id;
   state.folderName = name;
   state.folderLevel = level;
+  clearDetailPanel();
 
   document.getElementById('breadcrumb').innerHTML = `<strong>${escHtml(name)}</strong>`;
   const actions = document.getElementById('contentActions');
@@ -484,55 +629,140 @@ async function loadFolder(id, name, level) {
 
   const res = await fetch(`/api/folders/${id}/items`);
   const data = await res.json();
-  renderItems(data.items || []);
-  if (level === 'admin') renderFolderPermPanel(id);
+  const node = findNodeInTree(state.treeData, id);
+  renderContent(node ? node.children : [], data.items || []);
+  if (level === 'admin' && !isRoot) renderFolderPermPanel(id);
 }
 
-function renderItems(items) {
+// ─── TREE HELPERS ────────────────────────────────────────────────────────────
+
+function findNodeInTree(nodes, id) {
+  for (const n of nodes) {
+    if (n.id === id) return n;
+    const found = findNodeInTree(n.children, id);
+    if (found) return found;
+  }
+  return null;
+}
+
+function navigateToFolder(id, name, level) {
+  document.querySelectorAll('.tree-node-row.active').forEach(r => r.classList.remove('active'));
+  const treeRow = document.querySelector(`.tree-node-row[data-id="${id}"]`);
+  if (treeRow) {
+    treeRow.classList.add('active');
+    // Walk up and expand collapsed ancestors
+    let container = treeRow.parentElement?.parentElement; // tree-node → tree-children
+    while (container && container.classList.contains('tree-children')) {
+      container.style.display = 'block';
+      const parentNode = container.parentElement;
+      if (parentNode) {
+        const parentRow = parentNode.querySelector(':scope > .tree-node-row');
+        parentRow?.querySelector('.toggle-btn')?.classList.add('open');
+        const icon = parentRow?.querySelector('.folder-icon');
+        if (icon) icon.textContent = '📂';
+      }
+      container = parentNode?.parentElement;
+    }
+  }
+  loadFolder(id, name, level, false);
+}
+
+// ─── CONTENT RENDERING ───────────────────────────────────────────────────────
+
+function renderContent(subfolders, items) {
   const scroll = document.getElementById('contentScroll');
-  if (items.length === 0) {
+  scroll.innerHTML = '';
+
+  if (!subfolders.length && !items.length) {
     scroll.innerHTML = '<div class="placeholder"><p style="color:var(--muted)">This folder is empty.</p></div>';
     return;
   }
+
+  if (subfolders.length) {
+    const sec = document.createElement('div');
+    sec.className = 'subfolder-section';
+    const hdr = document.createElement('div');
+    hdr.className = 'section-hdr';
+    hdr.textContent = 'Subfolders';
+    sec.appendChild(hdr);
+    const grid = document.createElement('div');
+    grid.className = 'subfolder-grid';
+    for (const f of subfolders) {
+      const card = document.createElement('div');
+      card.className = 'folder-card';
+      card.innerHTML = `<span>📁</span><span class="folder-card-name">${escHtml(f.name)}</span><span class="badge ${f.userLevel}">${f.userLevel}</span>`;
+      card.title = f.name;
+      card.onclick = () => navigateToFolder(f.id, f.name, f.userLevel);
+      grid.appendChild(card);
+    }
+    sec.appendChild(grid);
+    scroll.appendChild(sec);
+  }
+
+  if (items.length) {
+    if (subfolders.length) {
+      const hdr = document.createElement('div');
+      hdr.className = 'section-hdr';
+      hdr.textContent = 'Items';
+      scroll.appendChild(hdr);
+    }
+    scroll.appendChild(buildItemsTable(items));
+  }
+}
+
+function renderItems(items) {
+  renderContent([], items);
+}
+
+function buildItemsTable(items) {
   const table = document.createElement('table');
   table.innerHTML = `<thead><tr>
-    <th>Name</th><th>Username</th><th>Access</th><th>Modified</th><th style="text-align:right">Actions</th>
+    <th>Name</th><th>Username</th><th>Password</th><th>Access</th><th>Modified</th><th style="text-align:right">Actions</th>
   </tr></thead>`;
   const tbody = document.createElement('tbody');
   for (const item of items) {
     const tr = document.createElement('tr');
+    tr.className = 'item-row' + (item.id === state.selectedItemId ? ' selected' : '');
+    tr.dataset.itemId = item.id;
+
     const modDate = item.modified_at ? new Date(item.modified_at).toLocaleDateString() : '—';
+
     tr.innerHTML = `
       <td class="item-name">${escHtml(item.name)}</td>
-      <td class="item-username">${escHtml(item.username || '—')}</td>
+      <td class="item-username-cell">
+        ${escHtml(item.username || '—')}
+        ${item.username ? `<button class="icon-btn row-copy-btn" onclick="event.stopPropagation();copyText('${escAttr(item.username)}','Username')" title="Copy username">⎘</button>` : ''}
+      </td>
+      <td class="item-pw-cell">
+        ••••
+        <button class="icon-btn row-copy-btn" onclick="event.stopPropagation();copyPasswordInline('${escAttr(item.id)}')" title="Copy password">⎘</button>
+      </td>
       <td><span class="badge ${item.userLevel}">${item.userLevel}</span></td>
       <td style="color:var(--muted);font-size:0.78rem">${modDate}</td>
       <td class="item-actions"></td>
     `;
+
+    // Click to select, double-click to edit
+    tr.onclick = () => selectItem(item);
+    if (['write','admin'].includes(item.userLevel)) {
+      tr.ondblclick = (e) => { e.stopPropagation(); openEditItem(item.id, item.name, item.username, item.userLevel); };
+    }
+
     const actCell = tr.querySelector('.item-actions');
 
-    // Reveal password button
     const pwBtn = document.createElement('button');
     pwBtn.className = 'icon-btn';
     pwBtn.title = 'Reveal password';
     pwBtn.textContent = '👁';
-    pwBtn.onclick = () => revealSecret(item.id, 'password', item.name);
+    pwBtn.onclick = (e) => { e.stopPropagation(); revealSecret(item.id, 'password', item.name); };
     actCell.appendChild(pwBtn);
-
-    // Reveal notes button
-    const notesBtn = document.createElement('button');
-    notesBtn.className = 'icon-btn';
-    notesBtn.title = 'View notes';
-    notesBtn.textContent = '📝';
-    notesBtn.onclick = () => revealSecret(item.id, 'notes', item.name);
-    actCell.appendChild(notesBtn);
 
     if (['write','admin'].includes(item.userLevel)) {
       const editBtn = document.createElement('button');
       editBtn.className = 'icon-btn';
-      editBtn.title = 'Edit';
+      editBtn.title = 'Edit (or double-click row)';
       editBtn.textContent = '✏';
-      editBtn.onclick = () => openEditItem(item.id, item.name, item.username, item.userLevel);
+      editBtn.onclick = (e) => { e.stopPropagation(); openEditItem(item.id, item.name, item.username, item.userLevel); };
       actCell.appendChild(editBtn);
     }
 
@@ -541,7 +771,7 @@ function renderItems(items) {
       permBtn.className = 'icon-btn';
       permBtn.title = 'Permissions';
       permBtn.textContent = '🔒';
-      permBtn.onclick = () => openPerms('item', item.id, item.name);
+      permBtn.onclick = (e) => { e.stopPropagation(); openPerms('item', item.id, item.name); };
       actCell.appendChild(permBtn);
     }
 
@@ -550,15 +780,14 @@ function renderItems(items) {
       delBtn.className = 'icon-btn danger';
       delBtn.title = 'Delete';
       delBtn.textContent = '🗑';
-      delBtn.onclick = () => deleteItem(item.id, item.name);
+      delBtn.onclick = (e) => { e.stopPropagation(); deleteItem(item.id, item.name); };
       actCell.appendChild(delBtn);
     }
 
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
-  scroll.innerHTML = '';
-  scroll.appendChild(table);
+  return table;
 }
 
 // ─── FOLDER MODAL ─────────────────────────────────────────────────────────────
@@ -624,6 +853,7 @@ async function deleteFolder(id, name) {
     document.getElementById('contentActions').style.display = 'none';
     document.getElementById('breadcrumb').textContent = 'Select a folder';
     document.getElementById('contentScroll').innerHTML = '<div class="placeholder"><p style="color:var(--muted)">Select a folder to view its contents</p></div>';
+    clearDetailPanel();
   }
   await loadTree();
 }
@@ -642,6 +872,7 @@ function openCreateItem() {
   document.getElementById('itemPassword').value = '';
   document.getElementById('itemNotes').value = '';
   document.getElementById('itemPermSection').style.display = 'none';
+  hidePwFeedback();
   clearFlash('itemModalFlash');
   openModal('itemModal');
   setTimeout(() => document.getElementById('itemName').focus(), 50);
@@ -656,11 +887,11 @@ async function openEditItem(id, name, username, level) {
   document.getElementById('itemName').value = name;
   document.getElementById('itemUsername').value = username || '';
   document.getElementById('itemPassword').value = '';
-  // Load notes
   const res = await fetch(`/api/items/${id}/notes`);
   const data = await res.json();
   document.getElementById('itemNotes').value = data.notes || '';
   document.getElementById('itemPermSection').style.display = level === 'admin' ? 'block' : 'none';
+  hidePwFeedback();
   clearFlash('itemModalFlash');
   openModal('itemModal');
   setTimeout(() => document.getElementById('itemName').focus(), 50);
@@ -705,6 +936,7 @@ async function deleteItem(id, name) {
   if (!confirm(`Delete item "${name}"? This cannot be undone.`)) return;
   const res = await fetch(`/api/items/${id}`, { method: 'DELETE' });
   if (!res.ok) { alert('Delete failed'); return; }
+  if (state.selectedItemId === id) clearDetailPanel();
   loadFolder(state.folderId, state.folderName, state.folderLevel);
 }
 
@@ -754,7 +986,6 @@ async function openPerms(resourceType, resourceId, name) {
   document.getElementById('permSubjectType').value = 'group';
   _selectedSubject = '';
   hideSuggestions();
-  // Reset placeholder for default type (group)
   document.getElementById('permSubject').placeholder = 'Search AD group by name…';
   document.getElementById('permSubject').disabled = false;
   clearFlash('permModalFlash');
@@ -785,7 +1016,7 @@ async function refreshPermList() {
     const displayType = isEveryone ? 'everyone' : p.subject_type;
     const fullTitle = isEveryone ? '' : p.subject;
     row.innerHTML = `
-      <span class="badge ${p.level}">${p.level}</span>
+      <span class="badge ${p.level}">${p.level === 'hide' ? '🚫 hide' : p.level}</span>
       <span style="color:var(--muted);font-size:0.7rem">${escHtml(displayType)}</span>
       <span class="perm-subject" title="${escHtml(fullTitle)}">${escHtml(displaySubject)}</span>
       <button class="icon-btn danger" title="Remove" onclick="removePermission('${escAttr(p.subject_type)}','${escAttr(p.subject)}')">✕</button>
@@ -794,30 +1025,13 @@ async function refreshPermList() {
   }
 }
 
-function onPermTypeChange() {
-  const type = document.getElementById('permSubjectType').value;
-  const subjectInput = document.getElementById('permSubject');
-  if (type === 'everyone') {
-    subjectInput.value = '';
-    subjectInput.disabled = true;
-    subjectInput.placeholder = 'All authenticated users';
-  } else {
-    subjectInput.disabled = false;
-    subjectInput.placeholder = type === 'group'
-      ? 'CN=Finance,OU=Groups,DC=corp,DC=com'
-      : 'username';
-  }
-}
-
 async function addPermission() {
   let subjectType = document.getElementById('permSubjectType').value;
   let subject = document.getElementById('permSubject').value.trim();
   const level = document.getElementById('permLevel').value;
 
-  // Use the value selected from autocomplete (full DN/username), else raw typed input
   subject = _selectedSubject || subject;
 
-  // Translate 'everyone' to internal wildcard representation
   if (subjectType === 'everyone') {
     subjectType = 'group';
     subject = '*';
@@ -886,7 +1100,6 @@ function togglePw(inputId, btn) {
   btn.textContent = isText ? '👁' : '🙈';
 }
 
-// Close modal on backdrop click
 document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
   backdrop.addEventListener('click', (e) => {
     if (e.target === backdrop) {
@@ -897,7 +1110,6 @@ document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
   });
 });
 
-// Keyboard: Enter submits, Escape closes
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (!document.getElementById('revealModal').classList.contains('hidden')) closeReveal();
@@ -911,7 +1123,6 @@ document.addEventListener('keydown', (e) => {
 
 // ─── LDAP AUTOCOMPLETE ───────────────────────────────────────────────────────
 
-// Value actually submitted to the API (DN for groups, username for users)
 let _selectedSubject = '';
 let _searchTimer = null;
 
@@ -982,7 +1193,7 @@ function renderSuggestions(type, results) {
     if (type === 'group') {
       div.innerHTML = `<div class="sug-name">${escHtml(r.name)}</div><div class="sug-sub">${escHtml(r.dn)}</div>`;
       div.addEventListener('mousedown', (e) => {
-        e.preventDefault(); // prevent blur before click fires
+        e.preventDefault();
         selectSubject(r.dn, r.name);
       });
     } else {
@@ -1008,16 +1219,108 @@ function hideSuggestions() {
   document.getElementById('permSuggestions').classList.add('hidden');
 }
 
-// Close suggestions when clicking outside
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#permSuggestions') && e.target.id !== 'permSubject') {
     hideSuggestions();
   }
 });
 
-// Reset autocomplete state when opening the permissions modal
-const _origOpenPerms = openPerms;
-// (openPerms is already defined above; we patch addPermission and openPerms inline below)
+// ─── PASSWORD STRENGTH & DUPLICATE CHECK ─────────────────────────────────────
+
+let _pwDupTimer = null;
+
+function onPasswordInput() {
+  const pw = document.getElementById('itemPassword').value;
+  clearTimeout(_pwDupTimer);
+  if (!pw) { hidePwFeedback(); return; }
+  renderPwComplexity(pw);
+  document.getElementById('pwDupMsg').textContent = '';
+  _pwDupTimer = setTimeout(() => checkPasswordDuplicate(pw), 700);
+}
+
+function analyzeComplexity(pw) {
+  const sev = { level: 'ok', score: 0, msgs: [] };
+
+  if (pw.length < 8) {
+    sev.msgs.push({ c: 'danger', t: 'Way too short — minimum 8 characters' });
+    sev.level = 'danger';
+  } else if (pw.length < 12) {
+    sev.msgs.push({ c: 'warn', t: '12+ characters recommended' });
+    if (sev.level === 'ok') sev.level = 'warn';
+  }
+
+  const missing = [];
+  if (!/[A-Z]/.test(pw)) missing.push('uppercase');
+  if (!/[a-z]/.test(pw)) missing.push('lowercase');
+  if (!/[0-9]/.test(pw)) missing.push('numbers');
+  if (!/[^A-Za-z0-9]/.test(pw)) missing.push('symbols');
+
+  if (missing.length >= 3) {
+    sev.msgs.push({ c: 'danger', t: `Extremely weak — missing: ${missing.join(', ')}` });
+    sev.level = 'danger';
+  } else if (missing.length > 0) {
+    sev.msgs.push({ c: 'warn', t: `Missing: ${missing.join(', ')}` });
+    if (sev.level === 'ok') sev.level = 'warn';
+  }
+
+  if (sev.msgs.length === 0) sev.msgs.push({ c: 'ok', t: 'Strong password' });
+
+  let s = 0;
+  if (pw.length >= 8)           s += 20;
+  if (pw.length >= 12)          s += 15;
+  if (pw.length >= 16)          s += 10;
+  if (/[A-Z]/.test(pw))         s += 15;
+  if (/[a-z]/.test(pw))         s += 10;
+  if (/[0-9]/.test(pw))         s += 15;
+  if (/[^A-Za-z0-9]/.test(pw)) s += 15;
+  sev.score = Math.min(s, 100);
+  return sev;
+}
+
+function renderPwComplexity(pw) {
+  const { level, score, msgs } = analyzeComplexity(pw);
+  const colors = { danger: '#ef4444', warn: '#f59e0b', ok: '#22c55e' };
+  const icons  = { danger: '⛔', warn: '⚠', ok: '✓' };
+
+  document.getElementById('pwStrengthBar').style.width = score + '%';
+  document.getElementById('pwStrengthBar').style.background = colors[level];
+  document.getElementById('pwStrengthMsgs').innerHTML = msgs
+    .map(m => `<span style="color:${colors[m.c]}">${icons[m.c]} ${escHtml(m.t)}</span>`)
+    .join('');
+  document.getElementById('pwFeedback').style.display = 'block';
+}
+
+async function checkPasswordDuplicate(pw) {
+  try {
+    const body = { password: pw };
+    if (state.itemModalMode === 'edit' && state.itemModalTargetId) body.excludeId = state.itemModalTargetId;
+    const res = await fetch('/api/items/check-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return;
+    if (document.getElementById('itemPassword').value !== pw) return;
+    const { count } = await res.json();
+    const el = document.getElementById('pwDupMsg');
+    if (count === 0) { el.textContent = ''; return; }
+    if (count === 1) {
+      el.style.color = '#f59e0b';
+      el.textContent = `⚠ This password is already used in 1 other entry — consider a unique one`;
+    } else {
+      el.style.color = '#ef4444';
+      el.textContent = `⛔ Used in ${count} other entries — one breach exposes all of them!`;
+    }
+  } catch { /* network error, silently ignore */ }
+}
+
+function hidePwFeedback() {
+  clearTimeout(_pwDupTimer);
+  document.getElementById('pwFeedback').style.display = 'none';
+  document.getElementById('pwStrengthBar').style.width = '0';
+  document.getElementById('pwStrengthMsgs').innerHTML = '';
+  document.getElementById('pwDupMsg').textContent = '';
+}
 
 // ─── PASSWORD GENERATOR ───────────────────────────────────────────────────────
 
@@ -1032,6 +1335,7 @@ function generatePassword() {
   input.type = 'text';
   const toggle = input.closest('.pw-wrap').querySelector('.pw-toggle');
   if (toggle) toggle.textContent = '🙈';
+  onPasswordInput();
 }
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
@@ -1095,7 +1399,7 @@ async function refreshInlinePermList(resourceType, resourceId, listElId) {
       const displayType = isEveryone ? 'everyone' : p.subject_type;
       const fullTitle = isEveryone ? '' : p.subject;
       row.innerHTML = `
-        <span class="badge ${p.level}">${p.level}</span>
+        <span class="badge ${p.level}">${p.level === 'hide' ? '🚫 hide' : p.level}</span>
         <span style="color:var(--muted);font-size:0.7rem">${escHtml(displayType)}</span>
         <span class="perm-subject" title="${escHtml(fullTitle)}">${escHtml(displaySubject)}</span>
       `;
@@ -1117,6 +1421,285 @@ async function refreshItemPermInlineList() {
   if (state.itemModalMode !== 'edit' || !state.itemModalTargetId) return;
   await refreshInlinePermList('item', state.itemModalTargetId, 'itemPermInlineList');
 }
+
+// ─── DETAIL PANEL (KeePass-style) ─────────────────────────────────────────────
+
+function selectItem(item) {
+  state.selectedItemId = item.id;
+  state.selectedItem = item;
+  document.querySelectorAll('.item-row').forEach(r => {
+    r.classList.toggle('selected', r.dataset.itemId === item.id);
+  });
+  renderDetailPanel(item);
+}
+
+function clearDetailPanel() {
+  state.selectedItemId = null;
+  state.selectedItem = null;
+  document.getElementById('detailEmpty').style.display = '';
+  document.getElementById('detailContent').style.display = 'none';
+}
+
+function renderDetailPanel(item) {
+  document.getElementById('detailEmpty').style.display = 'none';
+  document.getElementById('detailContent').style.display = '';
+
+  document.getElementById('detailTitle').textContent = item.name;
+  document.getElementById('detailUsername').textContent = item.username || '—';
+
+  const fmtDt = (iso, by) => {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) + ' · ' + by;
+  };
+  document.getElementById('detailModified').textContent = fmtDt(item.modified_at, item.modified_by);
+  document.getElementById('detailCreated').textContent  = fmtDt(item.created_at,  item.created_by);
+
+  document.getElementById('detailCopyUser').style.display = item.username ? '' : 'none';
+
+  const btns = document.getElementById('detailBtns');
+  btns.innerHTML = '';
+  if (['write','admin'].includes(item.userLevel)) {
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-secondary';
+    editBtn.style.cssText = 'font-size:0.75rem;padding:0.22rem 0.6rem';
+    editBtn.innerHTML = '✏ Edit';
+    editBtn.onclick = () => openEditItem(item.id, item.name, item.username, item.userLevel);
+    btns.appendChild(editBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-ghost';
+    delBtn.style.cssText = 'font-size:0.75rem;padding:0.22rem 0.6rem;color:var(--danger);border-color:transparent';
+    delBtn.innerHTML = '🗑';
+    delBtn.title = 'Delete';
+    delBtn.onclick = () => deleteItem(item.id, item.name);
+    btns.appendChild(delBtn);
+  }
+
+  document.getElementById('detailHistoryBtn').style.display = item.userLevel === 'admin' ? '' : 'none';
+}
+
+async function copyUsernameFromDetail() {
+  const item = state.selectedItem;
+  if (!item || !item.username) return;
+  copyText(item.username, 'Username');
+}
+
+async function copyPasswordFromDetail() {
+  const item = state.selectedItem;
+  if (!item) return;
+  await copyPasswordInline(item.id);
+}
+
+function revealPasswordFromDetail() {
+  const item = state.selectedItem;
+  if (!item) return;
+  revealSecret(item.id, 'password', item.name);
+}
+
+function revealNotesFromDetail() {
+  const item = state.selectedItem;
+  if (!item) return;
+  revealSecret(item.id, 'notes', item.name);
+}
+
+// ─── COPY & TOAST ─────────────────────────────────────────────────────────────
+
+async function copyPasswordInline(id) {
+  try {
+    const res = await fetch(`/api/items/${id}/password`);
+    if (!res.ok) { showToast('Copy failed — access denied', 'error'); return; }
+    const { password } = await res.json();
+    copyText(password || '', 'Password');
+  } catch {
+    showToast('Copy failed', 'error');
+  }
+}
+
+function copyText(text, label) {
+  if (text === undefined || text === null) return;
+  navigator.clipboard.writeText(text)
+    .then(() => showToast(`${label} copied`))
+    .catch(() => showToast('Copy failed — clipboard unavailable', 'error'));
+}
+
+let _toastTimer = null;
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + (type === 'error' ? 'toast-error' : 'toast-ok');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => {
+    el.className = 'toast';
+    _toastTimer = null;
+  }, 2200);
+}
+
+// ─── AUDIT LOG ────────────────────────────────────────────────────────────────
+
+async function openAuditLog(mode, id, name) {
+  state.auditMode  = mode || 'full';
+  state.auditItemId = id || null;
+  state.auditOffset = 0;
+  state.auditEntries = [];
+
+  document.getElementById('auditModalTitle').textContent = mode === 'item' ? `History — ${name}` : 'Audit Log';
+  document.getElementById('auditFilterRow').style.display = mode === 'item' ? 'none' : '';
+  if (document.getElementById('auditFilter')) document.getElementById('auditFilter').value = '';
+  document.getElementById('auditBody').innerHTML = '';
+  document.getElementById('auditLoading').style.display = '';
+  document.getElementById('auditEmpty').style.display = 'none';
+  openModal('auditModal');
+  await fetchAuditEntries();
+}
+
+async function fetchAuditEntries() {
+  document.getElementById('auditLoading').style.display = '';
+  document.getElementById('auditEmpty').style.display = 'none';
+  try {
+    const url = state.auditMode === 'item'
+      ? `/api/audit/item/${state.auditItemId}`
+      : `/api/audit?limit=${state.auditLimit}&offset=${state.auditOffset}`;
+
+    const res = await fetch(url);
+    document.getElementById('auditLoading').style.display = 'none';
+
+    if (!res.ok) {
+      const d = await res.json();
+      document.getElementById('auditEmpty').textContent = d.error || 'Access denied';
+      document.getElementById('auditEmpty').style.display = '';
+      return;
+    }
+
+    const data = await res.json();
+    state.auditEntries = data.entries || [];
+    state.auditTotal   = data.total  || state.auditEntries.length;
+  } catch {
+    document.getElementById('auditLoading').style.display = 'none';
+    document.getElementById('auditEmpty').textContent = 'Failed to load audit log';
+    document.getElementById('auditEmpty').style.display = '';
+  }
+  renderAuditEntries();
+}
+
+const AUDIT_ACTION_META = {
+  reveal_password: { label: 'Reveal password',  css: 'audit-action-reveal', icon: '👁'  },
+  reveal_notes:    { label: 'Reveal notes',      css: 'audit-action-reveal', icon: '📝' },
+  create_item:     { label: 'Created item',      css: 'audit-action-create', icon: '➕' },
+  edit_item:       { label: 'Edited item',       css: 'audit-action-edit',   icon: '✏'  },
+  delete_item:     { label: 'Deleted item',      css: 'audit-action-delete', icon: '🗑' },
+  create_folder:   { label: 'Created folder',    css: 'audit-action-create', icon: '📁' },
+  rename_folder:   { label: 'Renamed folder',    css: 'audit-action-edit',   icon: '📁' },
+  delete_folder:   { label: 'Deleted folder',    css: 'audit-action-delete', icon: '🗑' },
+};
+
+function renderAuditEntries() {
+  const filter  = document.getElementById('auditFilter')?.value || '';
+  const entries = filter ? state.auditEntries.filter(e => e.action === filter) : state.auditEntries;
+
+  const tbody = document.getElementById('auditBody');
+  tbody.innerHTML = '';
+
+  if (entries.length === 0) {
+    document.getElementById('auditEmpty').textContent = filter ? 'No entries match this filter' : 'No audit entries yet';
+    document.getElementById('auditEmpty').style.display = '';
+    return;
+  }
+  document.getElementById('auditEmpty').style.display = 'none';
+
+  for (const e of entries) {
+    const tr  = document.createElement('tr');
+    const ts  = new Date(e.timestamp).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' });
+    const meta = AUDIT_ACTION_META[e.action] || { label: e.action, css: '', icon: '' };
+    tr.innerHTML = `
+      <td style="white-space:nowrap;color:var(--muted)">${escHtml(ts)}</td>
+      <td style="font-weight:500">${escHtml(e.actor)}</td>
+      <td><span class="audit-action ${meta.css}">${meta.icon} ${escHtml(meta.label)}</span></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(e.resource_name||'')}">${escHtml(e.resource_name || e.resource_id || '—')}</td>
+      <td style="color:var(--muted);font-size:0.75rem">${escHtml(e.ip || '—')}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  const pageInfo = document.getElementById('auditPageInfo');
+  if (state.auditMode === 'full') {
+    const end = state.auditOffset + state.auditEntries.length;
+    pageInfo.textContent = `${state.auditOffset + 1}–${end} of ${state.auditTotal}`;
+    document.getElementById('auditPrevBtn').disabled = state.auditOffset === 0;
+    document.getElementById('auditNextBtn').disabled = end >= state.auditTotal;
+  } else {
+    pageInfo.textContent = `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`;
+    document.getElementById('auditPrevBtn').disabled = true;
+    document.getElementById('auditNextBtn').disabled = true;
+  }
+  document.getElementById('auditCount').textContent = filter ? `(${entries.length} shown)` : '';
+}
+
+async function auditPrev() {
+  if (state.auditOffset === 0) return;
+  state.auditOffset = Math.max(0, state.auditOffset - state.auditLimit);
+  await fetchAuditEntries();
+}
+
+async function auditNext() {
+  state.auditOffset += state.auditLimit;
+  await fetchAuditEntries();
+}
+
+async function openItemHistory() {
+  const item = state.selectedItem;
+  if (!item) return;
+  await openAuditLog('item', item.id, item.name);
+}
+
+// ─── DEBUG (GLOBAL_ADMIN only — browser console) ──────────────────────────────
+window.__debug = (() => {
+  let _pending = null;
+  return {
+    listRootFolders() {
+      const roots = state.treeData;
+      if (!roots.length) { console.log('[debug] No root folders in tree'); return; }
+      console.table(roots.map(n => ({ name: n.name, id: n.id, yourLevel: n.userLevel })));
+    },
+    async deleteRootFolder(nameOrId) {
+      const node = state.treeData.find(n => n.id === nameOrId || n.name === nameOrId);
+      if (!node) {
+        console.warn('[debug] Root folder not found. Call __debug.listRootFolders() to see available ones.');
+        return;
+      }
+      console.warn(
+        `%c[debug] About to permanently delete root folder "${node.name}" (${node.id}) and ALL its contents.\n` +
+        `Call __debug.confirm() within 10 seconds to proceed.`,
+        'color:#f59e0b;font-weight:bold'
+      );
+      _pending = { id: node.id, name: node.name, expires: Date.now() + 10000 };
+    },
+    async confirm() {
+      if (!_pending || Date.now() > _pending.expires) {
+        console.error('[debug] No pending deletion or confirmation window expired. Call deleteRootFolder() again.');
+        _pending = null;
+        return;
+      }
+      const { id, name } = _pending;
+      _pending = null;
+      const res = await fetch(`/api/folders/debug/root/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`%c[debug] Root folder "${name}" deleted.`, 'color:#22c55e;font-weight:bold');
+        if (state.folderId === id) {
+          state.folderId = null;
+          document.getElementById('contentActions').style.display = 'none';
+          document.getElementById('breadcrumb').textContent = 'Select a folder';
+          document.getElementById('contentScroll').innerHTML =
+            '<div class="placeholder"><p style="color:var(--muted)">Select a folder to view its contents</p></div>';
+          clearDetailPanel();
+        }
+        await loadTree();
+      } else {
+        console.error('[debug] Failed:', data.error);
+      }
+    },
+  };
+})();
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 updateThemeIcon();

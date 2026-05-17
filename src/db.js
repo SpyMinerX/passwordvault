@@ -48,6 +48,8 @@ function getDb() {
 }
 
 function runMigrations() {
+  db.exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)`);
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS folders (
       id         TEXT PRIMARY KEY,
@@ -82,10 +84,46 @@ function runMigrations() {
       UNIQUE(resource_type, resource_id, subject_type, subject)
     );
 
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id            TEXT PRIMARY KEY,
+      timestamp     TEXT NOT NULL,
+      actor         TEXT NOT NULL,
+      ip            TEXT,
+      action        TEXT NOT NULL,
+      resource_type TEXT,
+      resource_id   TEXT,
+      resource_name TEXT
+    );
+
     CREATE INDEX IF NOT EXISTS idx_folders_parent ON folders(parent_id);
     CREATE INDEX IF NOT EXISTS idx_items_folder   ON items(folder_id);
     CREATE INDEX IF NOT EXISTS idx_perms_resource ON permissions(resource_type, resource_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_ts       ON audit_log(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_audit_resource ON audit_log(resource_type, resource_id);
   `);
+
+  // V2: extend permissions level to include 'hide' (explicit deny override)
+  if (!db.prepare('SELECT version FROM schema_version WHERE version = 2').get()) {
+    db.exec(`PRAGMA foreign_keys = OFF`);
+    db.exec(`
+      CREATE TABLE permissions_new (
+        id            TEXT PRIMARY KEY,
+        resource_type TEXT NOT NULL CHECK(resource_type IN ('folder','item')),
+        resource_id   TEXT NOT NULL,
+        subject_type  TEXT NOT NULL CHECK(subject_type IN ('group','user','everyone')),
+        subject       TEXT NOT NULL,
+        level         TEXT NOT NULL CHECK(level IN ('read','write','admin','hide')),
+        UNIQUE(resource_type, resource_id, subject_type, subject)
+      )
+    `);
+    db.exec(`INSERT OR IGNORE INTO permissions_new SELECT * FROM permissions`);
+    db.exec(`DROP TABLE permissions`);
+    db.exec(`ALTER TABLE permissions_new RENAME TO permissions`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_perms_resource ON permissions(resource_type, resource_id)`);
+    db.exec(`PRAGMA foreign_keys = ON`);
+    db.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (2)').run();
+    console.log('Migration v2: permissions now support "hide" level');
+  }
 }
 
 function stmts() {
@@ -111,6 +149,7 @@ function stmts() {
       'UPDATE items SET name=?,username=?,encrypted_password=?,password_iv=?,encrypted_notes=?,notes_iv=?,modified_at=?,modified_by=? WHERE id=?'
     ),
     deleteItem:      d.prepare('DELETE FROM items WHERE id = ?'),
+    getAllPasswordItems: d.prepare('SELECT id, encrypted_password, password_iv FROM items WHERE encrypted_password IS NOT NULL'),
 
     // Permissions
     getPermissionsFor:      d.prepare('SELECT * FROM permissions WHERE resource_type=? AND resource_id=?'),
@@ -121,6 +160,12 @@ function stmts() {
       'DELETE FROM permissions WHERE resource_type=? AND resource_id=? AND subject_type=? AND subject=?'
     ),
     deleteAllPermissionsFor: d.prepare('DELETE FROM permissions WHERE resource_type=? AND resource_id=?'),
+
+    // Audit log
+    insertAuditLog:          d.prepare('INSERT INTO audit_log (id,timestamp,actor,ip,action,resource_type,resource_id,resource_name) VALUES (?,?,?,?,?,?,?,?)'),
+    getAuditLog:             d.prepare('SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT ? OFFSET ?'),
+    countAuditLog:           d.prepare('SELECT COUNT(*) as count FROM audit_log'),
+    getAuditLogForResource:  d.prepare('SELECT * FROM audit_log WHERE resource_type=? AND resource_id=? ORDER BY timestamp DESC LIMIT 200'),
   };
 }
 
