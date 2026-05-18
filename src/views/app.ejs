@@ -200,6 +200,14 @@
     .audit-action-edit   { color: var(--warn); }
     .audit-action-delete { color: var(--danger); }
 
+    /* PASSWORD STRENGTH DOT */
+    .pw-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; margin-right: 0.35rem; vertical-align: middle; }
+    .pw-dot-strong { background: #22c55e; }
+    .pw-dot-fair   { background: #f59e0b; }
+    .pw-dot-weak   { background: #ef4444; }
+    .pw-dot-dup    { background: #f97316; outline: 2px solid #f97316; outline-offset: 1px; }
+    .pw-dot-none   { background: var(--muted); opacity: 0.35; }
+
     /* MOBILE / PWA */
     .menu-btn { display: none; }
     .tree-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 49; }
@@ -768,6 +776,18 @@ function renderItems(items) {
   renderContent([], items);
 }
 
+function pwDotClass(item) {
+  if (item.isDuplicate) return 'dup';
+  const s = item.password_strength;
+  return (s && s !== 'none') ? s : 'none';
+}
+
+function pwDotTitle(item) {
+  if (item.isDuplicate) return 'Duplicate — same password used on another entry';
+  const labels = { strong: 'Strong password', fair: 'Fair password', weak: 'Weak password', none: 'No password set' };
+  return labels[item.password_strength] || 'No password set';
+}
+
 function buildItemsTable(items) {
   const table = document.createElement('table');
   table.innerHTML = `<thead><tr>
@@ -782,7 +802,7 @@ function buildItemsTable(items) {
     const modDate = item.modified_at ? new Date(item.modified_at).toLocaleDateString() : '—';
 
     tr.innerHTML = `
-      <td class="item-name">${escHtml(item.name)}</td>
+      <td class="item-name"><span class="pw-dot pw-dot-${pwDotClass(item)}" title="${escAttr(pwDotTitle(item))}"></span>${escHtml(item.name)}</td>
       <td class="item-username-cell">
         ${escHtml(item.username || '—')}
         ${item.username ? `<button class="icon-btn row-copy-btn" onclick="event.stopPropagation();copyText('${escAttr(item.username)}','Username')" title="Copy username">⎘</button>` : ''}
@@ -1498,7 +1518,8 @@ function renderDetailPanel(item) {
   document.getElementById('detailEmpty').style.display = 'none';
   document.getElementById('detailContent').style.display = '';
 
-  document.getElementById('detailTitle').textContent = item.name;
+  document.getElementById('detailTitle').innerHTML =
+    `<span class="pw-dot pw-dot-${pwDotClass(item)}" title="${escAttr(pwDotTitle(item))}"></span>${escHtml(item.name)}`;
   document.getElementById('detailUsername').textContent = item.username || '—';
 
   const fmtDt = (iso, by) => {
@@ -1512,6 +1533,20 @@ function renderDetailPanel(item) {
 
   const btns = document.getElementById('detailBtns');
   btns.innerHTML = '';
+
+  const linkBtn = document.createElement('button');
+  linkBtn.className = 'btn-ghost';
+  linkBtn.style.cssText = 'font-size:0.75rem;padding:0.22rem 0.55rem;line-height:1';
+  linkBtn.title = 'Copy link to this entry';
+  linkBtn.textContent = '🔗';
+  linkBtn.onclick = () => {
+    const url = location.origin + location.pathname + '#item/' + item.id;
+    navigator.clipboard.writeText(url).catch(() => {});
+    linkBtn.textContent = '✓';
+    setTimeout(() => { linkBtn.textContent = '🔗'; }, 1500);
+  };
+  btns.appendChild(linkBtn);
+
   if (['write','admin'].includes(item.userLevel)) {
     const editBtn = document.createElement('button');
     editBtn.className = 'btn btn-secondary';
@@ -1755,6 +1790,65 @@ window.__debug = (() => {
   };
 })();
 
+// ─── DEEP LINK NAVIGATION ─────────────────────────────────────────────────────
+
+function expandTreePath(targetFolderId) {
+  const parentMap = {};
+  function index(nodes) {
+    for (const n of nodes) {
+      parentMap[n.id] = n.parent_id || null;
+      if (n.children) index(n.children);
+    }
+  }
+  index(state.treeData);
+
+  const ancestors = [];
+  let cur = parentMap[targetFolderId];
+  while (cur) { ancestors.unshift(cur); cur = parentMap[cur]; }
+
+  for (const id of ancestors) {
+    const row = document.querySelector(`.tree-node-row[data-id="${id}"]`);
+    if (!row) continue;
+    const childWrap = row.parentElement.querySelector(':scope > .tree-children');
+    if (!childWrap || childWrap.style.display !== 'none') continue;
+    childWrap.style.display = 'block';
+    const tog = row.querySelector('.toggle-btn');
+    if (tog) tog.classList.add('open');
+    const ico = row.querySelector('.folder-icon');
+    if (ico) ico.textContent = '📂';
+  }
+
+  setTimeout(() => {
+    document.querySelector(`.tree-node-row[data-id="${targetFolderId}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 60);
+}
+
+async function navigateToItem(itemId) {
+  try {
+    const res = await fetch('/api/items/' + itemId);
+    if (!res.ok) return;
+    const { item } = await res.json();
+    if (!item) return;
+
+    const node = findNodeInTree(state.treeData, item.folder_id);
+    if (!node) return;
+
+    expandTreePath(item.folder_id);
+    document.querySelectorAll('.tree-node-row.active').forEach(r => r.classList.remove('active'));
+    document.querySelector(`.tree-node-row[data-id="${item.folder_id}"]`)?.classList.add('active');
+
+    await loadFolder(item.folder_id, node.name, node.userLevel, !node.parent_id);
+
+    const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
+    if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); row.click(); }
+
+    history.replaceState(null, '', '#item/' + itemId);
+  } catch (e) {
+    console.warn('[deeplink]', e);
+  }
+}
+
 // ─── MOBILE TREE ─────────────────────────────────────────────────────────────
 
 function toggleMobileTree() {
@@ -1778,7 +1872,10 @@ if ('serviceWorker' in navigator) {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 updateThemeIcon();
-loadTree();
+loadTree().then(() => {
+  const m = location.hash.match(/^#item\/([0-9a-f-]{36})$/i);
+  if (m) navigateToItem(m[1]);
+});
 </script>
 </body>
 </html>

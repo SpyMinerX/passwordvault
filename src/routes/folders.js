@@ -154,9 +154,11 @@ router.get('/:folderId/items', checkPermission('folder', r => r.params.folderId,
   const folder = stmts().getFolderById.get(req.params.folderId);
   if (!folder) return res.status(404).json({ error: 'Not found' });
   const items = stmts().getItemsByFolder.all(req.params.folderId);
-  const annotated = items.map(item => ({
+  const dupHmacs = new Set(stmts().getDuplicateHmacs.all().map(r => r.password_hmac));
+  const annotated = items.map(({ password_hmac, ...item }) => ({
     ...item,
     userLevel: resolvePermission(req.user, 'item', item.id),
+    isDuplicate: password_hmac ? dupHmacs.has(password_hmac) : false,
   })).filter(item => item.userLevel !== null);
   res.json({ items: annotated });
 });
@@ -171,7 +173,7 @@ router.post('/:folderId/items', checkPermission('folder', r => r.params.folderId
     return res.status(400).json({ error: 'name is required' });
   }
 
-  const { encrypt } = require('../crypto');
+  const { encrypt, computeHmac, scoreStrength } = require('../crypto');
   const encPw = encrypt(password || '');
   const encNotes = encrypt(notes || '');
   const id = uuidv4();
@@ -181,7 +183,8 @@ router.post('/:folderId/items', checkPermission('folder', r => r.params.folderId
     id, req.params.folderId, name.trim(), (username || '').trim(),
     encPw.ciphertext, encPw.iv,
     encNotes.ciphertext, encNotes.iv,
-    now, req.user.username, now, req.user.username
+    now, req.user.username, now, req.user.username,
+    computeHmac(password || ''), scoreStrength(password || '')
   );
 
   logAudit(req, 'create_item', 'item', id, name.trim());

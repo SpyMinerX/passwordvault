@@ -42,4 +42,17 @@ function decrypt(ciphertextB64, ivB64) {
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
 }
 
-module.exports = { encrypt, decrypt };
+function computeHmac(plaintext) {
+  if (!plaintext) return null;
+  return crypto.createHmac('sha256', getMasterKey()).update(plaintext, 'utf8').digest('hex');
+}
+
+function scoreStrength(password) {
+  if (!password) return 'none';
+  const missing = [/[A-Z]/, /[a-z]/, /[0-9]/, /[^A-Za-z0-9]/].filter(r => !r.test(password)).length;
+  if (password.length < 8 || missing >= 3) return 'weak';
+  if (password.length < 12 || missing > 0) return 'fair';
+  return 'strong';
+}
+
+module.exports = { encrypt, decrypt, computeHmac, scoreStrength };

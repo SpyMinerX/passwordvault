@@ -4,7 +4,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 
 const { stmts } = require('../db');
-const { encrypt, decrypt } = require('../crypto');
+const { encrypt, decrypt, computeHmac, scoreStrength } = require('../crypto');
 const { requireAuthApi, resolvePermission, checkPermission, meetsLevel } = require('../middleware');
 const { logAudit } = require('../audit');
 
@@ -12,26 +12,19 @@ const router = express.Router();
 router.use(requireAuthApi);
 
 // POST /api/items/check-password — count how many other items share this plaintext password
-router.post('/items/check-password', async (req, res) => {
+router.post('/items/check-password', (req, res) => {
   const { password, excludeId } = req.body;
   if (!password || typeof password !== 'string') return res.json({ count: 0 });
-  const items = stmts().getAllPasswordItems.all();
-  let count = 0;
-  for (const item of items) {
-    if (excludeId && item.id === excludeId) continue;
-    if (!item.encrypted_password || !item.password_iv) continue;
-    try {
-      if (decrypt(item.encrypted_password, item.password_iv) === password) count++;
-    } catch { /* skip corrupted entries */ }
-  }
-  res.json({ count });
+  const hmac = computeHmac(password);
+  const row = stmts().checkPasswordDup.get(hmac, excludeId || '');
+  res.json({ count: Number(row.count) });
 });
 
 // GET /api/items/:id — metadata only
 router.get('/items/:id', checkPermission('item', r => r.params.id, 'read'), (req, res) => {
   const item = stmts().getItemById.get(req.params.id);
   if (!item) return res.status(404).json({ error: 'Not found' });
-  const { encrypted_password, password_iv, encrypted_notes, notes_iv, ...safe } = item;
+  const { encrypted_password, password_iv, encrypted_notes, notes_iv, password_hmac, ...safe } = item;
   res.json({ item: { ...safe, userLevel: resolvePermission(req.user, 'item', item.id) } });
 });
 
@@ -46,7 +39,13 @@ router.put('/items/:id', checkPermission('item', r => r.params.id, 'write'), (re
   }
 
   let encPw = { ciphertext: item.encrypted_password, iv: item.password_iv };
-  if (password !== undefined && password !== '') encPw = encrypt(password);
+  let hmac = item.password_hmac;
+  let strength = item.password_strength;
+  if (password !== undefined && password !== '') {
+    encPw = encrypt(password);
+    hmac = computeHmac(password);
+    strength = scoreStrength(password);
+  }
 
   let encNotes = { ciphertext: item.encrypted_notes, iv: item.notes_iv };
   if (notes !== undefined) encNotes = encrypt(notes);
@@ -57,6 +56,7 @@ router.put('/items/:id', checkPermission('item', r => r.params.id, 'write'), (re
     encPw.ciphertext, encPw.iv,
     encNotes.ciphertext, encNotes.iv,
     now, req.user.username,
+    hmac, strength,
     req.params.id
   );
 

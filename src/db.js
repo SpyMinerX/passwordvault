@@ -102,6 +102,26 @@ function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_audit_resource ON audit_log(resource_type, resource_id);
   `);
 
+  // V3: password HMAC for O(1) duplicate detection + stored strength indicator
+  if (!db.prepare('SELECT version FROM schema_version WHERE version = 3').get()) {
+    try { db.exec('ALTER TABLE items ADD COLUMN password_hmac     TEXT'); } catch {}
+    try { db.exec('ALTER TABLE items ADD COLUMN password_strength TEXT'); } catch {}
+    db.exec('CREATE INDEX IF NOT EXISTS idx_items_hmac ON items(password_hmac)');
+
+    const { decrypt, computeHmac, scoreStrength } = require('./crypto');
+    const upd = db.prepare('UPDATE items SET password_hmac=?, password_strength=? WHERE id=?');
+    let count = 0;
+    for (const item of db.prepare('SELECT id, encrypted_password, password_iv FROM items').all()) {
+      try {
+        const plain = decrypt(item.encrypted_password, item.password_iv);
+        upd.run(computeHmac(plain), scoreStrength(plain), item.id);
+        count++;
+      } catch {}
+    }
+    db.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (3)').run();
+    console.log(`Migration v3: backfilled hmac+strength for ${count} items`);
+  }
+
   // V2: extend permissions level to include 'hide' (explicit deny override)
   if (!db.prepare('SELECT version FROM schema_version WHERE version = 2').get()) {
     db.exec(`PRAGMA foreign_keys = OFF`);
@@ -140,16 +160,17 @@ function stmts() {
     // Items (list excludes secret columns)
     getItemById:     d.prepare('SELECT * FROM items WHERE id = ?'),
     getItemsByFolder: d.prepare(
-      'SELECT id,folder_id,name,username,created_at,created_by,modified_at,modified_by FROM items WHERE folder_id = ? ORDER BY name'
+      'SELECT id,folder_id,name,username,created_at,created_by,modified_at,modified_by,password_strength,password_hmac FROM items WHERE folder_id = ? ORDER BY name'
     ),
     insertItem:      d.prepare(
-      'INSERT INTO items (id,folder_id,name,username,encrypted_password,password_iv,encrypted_notes,notes_iv,created_at,created_by,modified_at,modified_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
+      'INSERT INTO items (id,folder_id,name,username,encrypted_password,password_iv,encrypted_notes,notes_iv,created_at,created_by,modified_at,modified_by,password_hmac,password_strength) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
     ),
     updateItem:      d.prepare(
-      'UPDATE items SET name=?,username=?,encrypted_password=?,password_iv=?,encrypted_notes=?,notes_iv=?,modified_at=?,modified_by=? WHERE id=?'
+      'UPDATE items SET name=?,username=?,encrypted_password=?,password_iv=?,encrypted_notes=?,notes_iv=?,modified_at=?,modified_by=?,password_hmac=?,password_strength=? WHERE id=?'
     ),
     deleteItem:      d.prepare('DELETE FROM items WHERE id = ?'),
-    getAllPasswordItems: d.prepare('SELECT id, encrypted_password, password_iv FROM items WHERE encrypted_password IS NOT NULL'),
+    checkPasswordDup:    d.prepare('SELECT COUNT(*) as count FROM items WHERE password_hmac=? AND id!=?'),
+    getDuplicateHmacs:   d.prepare('SELECT password_hmac FROM items WHERE password_hmac IS NOT NULL GROUP BY password_hmac HAVING COUNT(*) > 1'),
 
     // Permissions
     getPermissionsFor:      d.prepare('SELECT * FROM permissions WHERE resource_type=? AND resource_id=?'),
