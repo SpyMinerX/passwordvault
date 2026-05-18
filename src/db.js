@@ -160,6 +160,9 @@ function stmts() {
       'DELETE FROM permissions WHERE resource_type=? AND resource_id=? AND subject_type=? AND subject=?'
     ),
     deleteAllPermissionsFor: d.prepare('DELETE FROM permissions WHERE resource_type=? AND resource_id=?'),
+    deleteOrphanedPermissions: d.prepare(
+      `DELETE FROM permissions WHERE (resource_type='folder' AND resource_id NOT IN (SELECT id FROM folders)) OR (resource_type='item' AND resource_id NOT IN (SELECT id FROM items))`
+    ),
 
     // Audit log
     insertAuditLog:          d.prepare('INSERT INTO audit_log (id,timestamp,actor,ip,action,resource_type,resource_id,resource_name) VALUES (?,?,?,?,?,?,?,?)'),

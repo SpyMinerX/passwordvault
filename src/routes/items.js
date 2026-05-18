@@ -70,6 +70,7 @@ router.delete('/items/:id', checkPermission('item', r => r.params.id, 'write'), 
   if (!item) return res.status(404).json({ error: 'Not found' });
   logAudit(req, 'delete_item', 'item', req.params.id, item.name);
   stmts().deleteItem.run(req.params.id);
+  stmts().deleteOrphanedPermissions.run();
   res.json({ ok: true });
 });
 

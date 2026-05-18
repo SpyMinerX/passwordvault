@@ -111,6 +111,7 @@ router.delete('/:id', checkPermission('folder', r => r.params.id, 'admin'), (req
   if (guardRootFolder(res, folder)) return;
   logAudit(req, 'delete_folder', 'folder', req.params.id, folder.name);
   stmts().deleteFolder.run(req.params.id);
+  stmts().deleteOrphanedPermissions.run();
   res.json({ ok: true });
 });
 

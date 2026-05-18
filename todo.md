@@ -1,8 +1,6 @@
 # TODO
 
-- phone design work
-- check permitions
-- make a readme
+- [x] phone design work
+- [x] check permissions
+- [x] make a readme
 - clean normal UI
-
-

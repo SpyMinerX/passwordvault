@@ -39,10 +39,10 @@
       color-scheme: light;
     }
 
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: background .2s, color .2s; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; transition: background .2s, color .2s; }
 
     /* NAV */
-    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 1.25rem; height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 1.25rem; height: calc(52px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
     .nav-brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; font-size: 1rem; color: var(--text); }
     .nav-brand svg { width: 22px; height: 22px; }
     .nav-user { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; color: var(--muted); }
@@ -209,9 +209,9 @@
       .menu-btn { display: inline-flex; }
       .tree-panel {
         position: fixed;
-        top: 52px;
+        top: calc(52px + env(safe-area-inset-top));
         left: -270px;
-        height: calc(100dvh - 52px);
+        height: calc(100dvh - 52px - env(safe-area-inset-top));
         z-index: 50;
         transition: left 0.22s ease;
         box-shadow: 4px 0 24px rgba(0,0,0,0.45);
